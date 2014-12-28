@@ -2,10 +2,6 @@
 
 angular.module('settlersApp')
   .factory('boardFactory', function($state, $rootScope, authFactory) {
-    if(!authFactory.getAuthData()) {
-      $state.go('main.login');
-    }
-
     var camera, scene, renderer, controls, light, water, game_board, someAction, updateEngine;
 
     var canvas_width = $(window).width();
@@ -237,7 +233,11 @@ angular.module('settlersApp')
   };
 })
 
-.controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $rootScope, $timeout){
+.controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout){
+  if(!engineFactory.getGame()){
+    $state.go('main.login');
+  }
+  
   var self = this;
   self.setMode = boardFactory.set_someAction;
   self.textContent = "";
@@ -248,13 +248,13 @@ angular.module('settlersApp')
 
   $rootScope.currentRoll = engineFactory.currentDiceRoll();
   $scope.currentGameID = $rootScope.currentGameID;
-  var dataLink = engineFactory.getDataLink();
-  var chatLink = dataLink.child('games').child($rootScope.currentGameID).child('chats');
-  var gameLink = dataLink.child('games').child($rootScope.currentGameID).child('data');
-  var userLink = dataLink.child('games').child($rootScope.currentGameID);
-  var userDB = dataLink.child('users');
-  self.players =[];
-  pullCurrentUsers();
+  // var dataLink = engineFactory.getDataLink();
+  // var chatLink = dataLink.child('games').child($rootScope.currentGameID).child('chats');
+  // var gameLink = dataLink.child('games').child($rootScope.currentGameID).child('data');
+  // var userLink = dataLink.child('games').child($rootScope.currentGameID);
+  // var userDB = dataLink.child('users');
+  self.players= engineFactory.getGame().players;
+  // pullCurrentUsers();
 
   $scope.toggleDropdown = function($event) {
     $event.preventDefault();
@@ -291,29 +291,28 @@ angular.module('settlersApp')
     }  
   };
   $scope.rollDice = function(){
-     if ($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID())
-       {
-         $scope.playerHasRolled = true;
-         engineFactory.rollDice();
-         $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-         chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
-       }
-       $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-      if($rootScope.currentRoll===7){
-        boardFactory.set_someAction("robber");
-      }
+    if($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID()){
+      $scope.playerHasRolled = true;
+      engineFactory.rollDice();
+      $rootScope.currentRoll = engineFactory.getGame().diceNumber;
+      chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
+    }
+    $rootScope.currentRoll = engineFactory.getGame().diceNumber;
+    if($rootScope.currentRoll===7){
+      boardFactory.set_someAction("robber");
+    }
    };
 
 
   // monitor for new chats
 
-  chatLink.on('child_added', function(snapshot) {
-    var message = snapshot.val();
-    if (!!message.systemMessage) {
-      printChatMessage(message.name, message.text, message.systemMessage);
-    }
-      else {printChatMessage(message.name, message.text)};
-  });
+  // chatLink.on('child_added', function(snapshot) {
+  //   var message = snapshot.val();
+  //   if (!!message.systemMessage) {
+  //     printChatMessage(message.name, message.text, message.systemMessage);
+  //   }
+  //     else {printChatMessage(message.name, message.text)};
+  // });
 
   function pullCurrentUsers(){
     userLink.once('value', function (snapshot) {
@@ -337,9 +336,9 @@ angular.module('settlersApp')
     })
   };
 
-  userLink.on('child_changed', function(){
-    pullCurrentUsers();
-  });
+  // userLink.on('child_changed', function(){
+  //   pullCurrentUsers();
+  // });
   
 }) 
 .directive('board', function(boardFactory) {

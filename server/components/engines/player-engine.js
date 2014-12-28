@@ -1,8 +1,5 @@
-//the player model is below
-
-var game = require('./game-engine');
-
-function Player(id) {
+function Player(userInfo, id) {
+    this.userRef = userInfo._id;
     this.playerID = id;
     this.resources = {
         wool: 0,
@@ -29,7 +26,6 @@ function Player(id) {
         roadSegments: 0,
         continuousRoadSegments: 0,
         knightsPlayed: 0,
-        publicPoints: 0,
         privatePoints: 0
     };
     this.tradingCosts = {
@@ -45,6 +41,8 @@ function Player(id) {
         roads: [],
     };
     this.rulesValidatedBuildableVertices = [];
+    this.playerName = userInfo.name;
+    this.displayName = this.playerName.split(" ")[0];
     this.hasLongestRoad = false;
     this.hasLargestArmy = false;
 };
@@ -61,4 +59,6 @@ Player.prototype.gatherResources = function() {
     return numberOfResourceCards;
 };
 
-module.exports = Player;
+module.exports = {
+    Player: Player
+};

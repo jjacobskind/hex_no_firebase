@@ -1,11 +1,12 @@
 'use strict';
 
 angular.module('settlersApp')
-	.factory('engineFactory', function($q, $rootScope, $timeout, boardFactory, authFactory){
+	.factory('engineFactory', function($q, $rootScope, $timeout, $http, $state, boardFactory, Auth, authFactory){
 		var game;
 
 		var gameID;
-		var dataLink = new Firebase("https://flickering-heat-2888.firebaseio.com/");
+		var dataLink = new Firebase("https://hex-island.firebaseio.com/");
+		var pendingRequests = dataLink.child('pendingRequests')
 		var gameDatabase;
 		var currentGameData;
 
@@ -137,18 +138,37 @@ angular.module('settlersApp')
 			}
 		};
 
+		var prepGameOnClient = function(data){
+			game = data;
+			// following line should be refactored later so that we don't have to create an unnecessary game object
+			game.gameBoard.getRoadDestination = new GameEngine(3, 5).gameBoard.getRoadDestination;
+			gameID = game._id;
+			$rootScope.currentGameID = gameID;
+			var currentUserID = Auth.getCurrentUser()._id
+			for(var i=0, len=game.players.length; i<len; i++){
+				if(game.players[i].userRef === currentUserID){
+					$rootScope.playerData = game.players[i];
+					authFactory.setPlayerID(i);
+				}
+			}
+			boardFactory.drawGame(game);
+			$state.go('game');
+		};
+
 		return {
 			newGame: function(small_num, big_num){
-				game = new GameEngine(small_num, big_num);
-				boardFactory.drawGame(game);
-				gameID = Date.now();
-				gameDatabase = dataLink.child('games').child(gameID);
-				currentGameData = gameDatabase.child('data');
-				firebaseEventListener();
-				$rootScope.currentGameID = gameID;
-				$rootScope.playerData = game.players[0];
-				syncDatabase(game);
-				return game;	
+				$http.post('/api/games', {small_num:small_num, big_num:big_num})
+					.success(prepGameOnClient);
+			},
+			joinGame: function(gameID){
+				$http.post('/api/games/join', {gameID: gameID})
+					.success(function(data){
+						if(data.hasOwnProperty('err')){
+							console.log(data.err);
+						} else {
+							prepGameOnClient(data);
+						}
+					});
 			},
 			getGame: function(){
 				return game;
@@ -222,12 +242,9 @@ angular.module('settlersApp')
 				}
 				return game.players[game.players.length];
 			},
-			restorePreviousSession: function(gameID) {
-					gameDatabase = dataLink.child('games').child(gameID);
-					currentGameData = gameDatabase.child('data');	
-					firebaseEventListener();
-					return boardSync(currentGameData);
-					//promise resolution once boardsync finishes
+			restorePreviousGame: function(gameID) {
+				$http.get('/api/games/' + gameID)
+					.success(prepGameOnClient);
 			},
 			getGameID: function(){
 				return gameID;
@@ -265,12 +282,13 @@ angular.module('settlersApp')
 			rollDice: function() {
 				//tell player they can build and trade after this is done
 				var diceRoll = game.roll();
-				game.distributeResources(diceRoll);
-				var onComplete = function() {
-					game.players[$rootScope.playerData.playerID] = $rootScope.playerData;
-					$rootScope.$digest();
-				};
-				currentGameData.child('players').set(JSON.stringify(game.players), onComplete);
+				pendingRequests.child(gameID + '/rollRequest').set(true);
+				// game.distributeResources(diceRoll);
+				// var onComplete = function() {
+				// 	game.players[$rootScope.playerData.playerID] = $rootScope.playerData;
+				// 	$rootScope.$digest();
+				// };
+				// currentGameData.child('players').set(JSON.stringify(game.players), onComplete);
 				return diceRoll;
 			},
 			endTurn: function () {

@@ -6,6 +6,6 @@ angular.module('settlersApp')
       .state('game', {
         url: '/game',
         templateUrl: 'app/game/game.html',
-        controller: 'MainCtrl as main_ctrl'
+        controller: 'GameCtrl as game_ctrl'
       });
   });

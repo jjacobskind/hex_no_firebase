@@ -58,6 +58,16 @@ exports.destroy = function(req, res) {
   });
 };
 
+
+/**
+ *Returns a list of all games that user is a player in or has been invited to join
+*/
+exports.getGamesList = function(req, res) {
+  User.findById(req.params.id, function(err, userObj) {
+    res.json({gamesList: userObj.games});
+  });
+};
+
 /**
  * Change a users password
  */
@@ -89,6 +99,7 @@ exports.me = function(req, res, next) {
   }, '-salt -hashedPassword', function(err, user) { // don't ever give out the password or salt
     if (err) return next(err);
     if (!user) return res.json(401);
+    console.log(user);
     res.json(user);
   });
 };

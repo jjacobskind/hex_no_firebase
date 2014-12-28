@@ -1,7 +1,3 @@
-//game board model, which is generates as a child of the gameengine model, but is generated as an independent object
-
-var game = require('./game-engine');
-
 var GameBoard = function(game, small_num, large_num) {
     this.game = game;
     this.boardTiles = [];
@@ -36,8 +32,8 @@ GameBoard.prototype.createVertices = function(small_num, large_num, board) {
         board.push(this.createRow(small_num));
     }
     this.gameIsInitialized = true;
-
     return board;
+
 };
 
 GameBoard.prototype.createRow = function(num_elements) {
@@ -63,10 +59,12 @@ GameBoard.prototype.createRow = function(num_elements) {
 GameBoard.prototype.placeSettlement = function(player, location) {
     var vertices = this.boardVertices;
     //board initialization place settlement, get board tiles, and if the location does not have the property owner OR there is not a settlement within one vertex, allow them to build
-
-    //check if owned
-    if (vertices[location[0]][location[1]].owner !== null){
-        throw new Error ('This location is owned already!');
+    var row = location[0], col = location[1];
+    if(!vertices[row][col]){
+        return {err: "This vertex does not exist!"};
+    }
+    else if (vertices[row][col].owner !== null){
+        return {err:"This location is owned already!"};
     };
     //check if there is a settlement within one tile
     var nearestThreeVertices = [];
@@ -75,24 +73,22 @@ GameBoard.prototype.placeSettlement = function(player, location) {
     nearestThreeVertices.push(this.getRoadDestination(location, 'right'));
     while (nearestThreeVertices.length !== 0) {
         var thisVertex = nearestThreeVertices[0];
-        if (thisVertex !== null) {
-            if (vertices[thisVertex[0]][thisVertex[1]].owner !== null)
-            {
-                throw new Error ('There is a settlement or city one tile away from this location, so this settlement cannot be built.');
-            }
+        if (!!thisVertex && vertices[thisVertex[0]][thisVertex[1]].owner !== null) {
+            return {err: "Cannot build next to another settlement!"};
         }
         nearestThreeVertices.shift();
     };
     // place settlement within initial setup phase
-    if ((vertices[location[0]][location[1]].owner === null && this.boardIsSetup === false) || 
-        (vertices[location[0]][location[1]].owner === null && player.rulesValidatedBuildableVertices.indexOf(location) !== -1))
+    if ((vertices[row][col].owner === null && this.boardIsSetup === false) || 
+        (vertices[row][col].owner === null && player.rulesValidatedBuildableVertices.indexOf(location) !== -1))
     {   
-        vertices[location[0]][location[1]].owner = player;
-        vertices[location[0]][location[1]].hasSettlementOrCity = 'settlement';
+        vertices[row][col].owner = player.playerID;
+        vertices[row][col].hasSettlementOrCity = 'settlement';
         player.constructionPool.settlements--;
         player.playerQualities.settlements++;
         //add one point to their score
-        player.ownedProperties.settlements.push({settlementID: location, data: vertices[location[0]][location[1]]});
+        player.playerQualities.privatePoints++;
+        player.ownedProperties.settlements.push({settlementID: location});
         //validate new buildable tiles?
         this.validateNewVertices(player, location);
         if (vertices[location[0]][location[1]].port !== null) {
@@ -102,14 +98,23 @@ GameBoard.prototype.placeSettlement = function(player, location) {
                 }
             }
             else {
-                var resourceToModify = vertices[location[0]][location[1]].port;
+                var resourceToModify = vertices[row][col].port;
                 for (var resource in player.tradingCosts) {
                     resourceToModify === resource ? player.tradingCosts[resource] = 2 : player.tradingCosts[resource] = player.tradingCosts[resource];
                 }
             }
         }
     }
-    //TO DO: validate tile in 'during game' phase 
+    if (this.game.turn >= this.game.players.length * 2) {
+      player.resources.wool--;
+      player.resources.grain--;
+      player.resources.lumber--;
+      player.resources.brick--;
+    }
+    this.game.findLongestRoad();
+    return {'players': JSON.stringify(this.game.players),
+            'boardVertices': JSON.stringify(this.boardVertices)
+    };
 };
 
 
@@ -118,15 +123,16 @@ GameBoard.prototype.upgradeSettlementToCity = function(player, location) {
     //TO DO
     //change score
     //resources - but this should be checked on a different module?
+    var row = location[0], col = location[1];
     var vertices = this.boardVertices;
-    if (vertices[location[0]][location[1]].owner === null){
-            throw new Error ('No settlement to build on!');
+    if (vertices[row][col].owner === null){
+        return {err: 'No settlement to upgrade at this vertex!'};
     };
-    if (vertices[location[0]][location[1]].owner !== player){
-            throw new Error ('This isn\'t your settlement!');
+    if (vertices[row][col].owner !== player.playerID){
+        return {err: 'This isn\'t your settlement!'};
     };
-    if (vertices[location[0]][location[1]].owner === player) {
-        vertices[location[0]][location[1]].hasSettlementOrCity = 'city';
+    if (vertices[row][col].owner === player.playerID) {
+        vertices[row][col].hasSettlementOrCity = 'city';
         player.ownedProperties.settlements.forEach(function(item, index){
             if (item.settlementID = location){
                 player.ownedProperties.settlements.splice(index, 1);
@@ -138,7 +144,12 @@ GameBoard.prototype.upgradeSettlementToCity = function(player, location) {
         //remove city 'piece' from construction pool, add settlement piece
         player.constructionPool.settlements++;
         player.constructionPool.cities--;
-        player.ownedProperties.cities.push({settlementID: location, data: vertices[location[0]][location[1]]})
+        player.playerQualities.privatePoints++;
+        player.ownedProperties.cities.push({settlementID: location});
+        return {
+            'players': JSON.stringify(this.game.players),
+            'boardVertices': JSON.stringify(this.boardVertices)
+        };
     }
 
 };
@@ -189,23 +200,59 @@ GameBoard.prototype.validateNewVertices = function(player, endpointLocation) {
 
 GameBoard.prototype.constructRoad = function(player, currentLocation, newDirection) {
     if (player.constructionPool.roads === 0) {
-        throw new Error ('No more roads in your construction pool!');
+        return {err: "no roads left"};
+    }
+    else if(!!this.boardVertices[currentLocation[0]][currentLocation[1]].connections[newDirection]){
+        return {err: "occupied"};
     }
     else {
         var destinationCoords = this.game.gameBoard.getRoadDestination(currentLocation, newDirection);
-        switch (newDirection)
-            {  case "left":
-                   var originDirection = "right";
-                   break;
-               case "right":
-                   var originDirection = "left";
-                   break;
-               case "vertical":
-                   var originDirection = "vertical";
-                   break;
-            };
-        this.game.gameBoard.boardVertices[currentLocation[0]][currentLocation[1]].connections[newDirection] = player;
-        this.game.gameBoard.boardVertices[destinationCoords[0]][destinationCoords[1]].connections[originDirection] = player;
+        if(!destinationCoords){
+            return {err: "Vertex [" + currentLocation + "] doesn't have a '" + newDirection + "' road!"};
+        }
+
+        // Check to make sure this road is adjacent to this player's settlement/city/other road
+        var currentVertex = this.boardVertices[currentLocation[0]][currentLocation[1]];
+        var destinationVertex = this.boardVertices[destinationCoords[0]][destinationCoords[1]];
+        var player_adjacent_road_currentVertex = false;
+        var player_adjacent_road_destinationVertex = false;
+        for(var key in currentVertex.connections){
+            if(currentVertex.connections[key]===player.playerID){
+                player_adjacent_road_currentVertex = true;
+            }
+            if(destinationVertex.connections[key]===player.playerID){
+                player_adjacent_road_destinationVertex = true;
+            }
+        }
+
+        // Check that player either owns one of the adjacent vertices, 
+        // OR owns a road attached to one of those vertices, and that another player doesn't own the vertex in between that road and the road being built
+        // Negating the logic in order to return an error instead of putting the rest of the function inside the IF statement
+        if(!((currentVertex.owner===player.playerID || destinationVertex.owner===player.playerID)
+            ||(player_adjacent_road_currentVertex && currentVertex.owner===null)
+            ||player_adjacent_road_destinationVertex && destinationVertex.owner===null)) {
+            return {err:"Road is not adjacent to player's current road, settlement, or city!"};
+        }
+        else if((this.game.turn<this.game.players.length*2)
+                && !((currentVertex.owner===player.playerID && !player_adjacent_road_currentVertex)
+                    || (destinationVertex.owner===player.playerID && !player_adjacent_road_destinationVertex))) {
+                            return {err:"Must place road adjacent to most recent settlement during board setup phase!"};
+        }
+
+
+        switch (newDirection) {  
+            case "left":
+               var originDirection = "right";
+               break;
+           case "right":
+               var originDirection = "left";
+               break;
+           case "vertical":
+               var originDirection = "vertical";
+               break;
+        };
+        this.game.gameBoard.boardVertices[currentLocation[0]][currentLocation[1]].connections[newDirection] = player.playerID;
+        this.game.gameBoard.boardVertices[destinationCoords[0]][destinationCoords[1]].connections[originDirection] = player.playerID;
         //housekeeping
         player.playerQualities.roadSegments++;
         player.constructionPool.roads--;
@@ -217,6 +264,15 @@ GameBoard.prototype.constructRoad = function(player, currentLocation, newDirecti
         //validation - this is two lines because validateNewVertices does not account for the vertex that is passed in, so we manually pass in the vertex and then validate all surrounding
         player.rulesValidatedBuildableVertices.push(destinationCoords);
         this.validateNewVertices(player, destinationCoords);
+        if (this.game.turn >= this.game.players.length * 2) {
+          player.resources.lumber--;
+          player.resources.brick--;
+        }
+        this.game.findLongestRoad();
+        return {
+            players: JSON.stringify(this.game.players),
+            boardVertices: JSON.stringify(this.boardVertices)
+        };
     }
 };
 
@@ -325,37 +381,35 @@ GameBoard.prototype.createResources = function(small_num, large_num) {
 
     var resource_bank = this.game.shuffle(['grain', 'lumber', 'wool', 'brick', 'ore'])
     i=0;
-    // resources length should be one less than num_tiles, since first desert is not in resources array
-    while(resources.length < num_tiles-1){
+
+    resources.unshift("desert");
+    while(resources.length < num_tiles){
         resources.push(resource_bank[i%5]);
         i++;
     }
     numberChits = numberChits.reverse();
     resources = this.game.shuffle(resources);
     var tempHexArray = [];
-    var desertRandomizer = Math.floor((Math.random() * num_tiles)+1);
-    tempHexArray[desertRandomizer] = {
-                                        hex: desertRandomizer + 1,
-                                        resource: 'desert',
-                                        chit: 7,
-                                        robber: false,
-                                    };
+    var desertRandomizer = Math.ceil((Math.random() * num_tiles));
 
     // Inserted first desert manually
     // Using modulus to insert each tile by index and loop back to zero index to fill in tiles that come before the desert
-    for (i = desertRandomizer+1; i%num_tiles !==desertRandomizer; i++) {
-            var this_resource = resources.pop();
-            if(this_resource==='desert'){
-                var this_chit = 7;
-            }
-            else {
-                this_chit = numberChits.pop();
-            }
-            tempHexArray[i%num_tiles] = {
-                                            hex: i%num_tiles +1,
-                                            resource: this_resource,
-                                            chit: this_chit,
-                                        };
+    for (i = desertRandomizer; i<(desertRandomizer+num_tiles); i++) {
+        var this_resource = resources.pop();
+        if(this_resource==='desert'){
+            var this_chit = 7;
+            var robber = true;
+        }
+        else {
+            this_chit = numberChits.pop();
+            robber = false;
+        }
+        tempHexArray[i%num_tiles] = {
+                                        hex: i%num_tiles +1,
+                                        resource: this_resource,
+                                        chit: this_chit,
+                                        robber: robber
+                                    };
     }
 
     // Restructure array of tiles into a multi-dimensional array with same dimensions as the board rendering
@@ -423,7 +477,7 @@ GameBoard.prototype.portCreation = function() {
         three_space_intervals++;
         space_interval_sum = (two_space_intervals*2)+(three_space_intervals*3);
     }
-    var space_interval_diff = space_interval_sum-num_spaces;
+    var space_interval_diff = space_interval_sum-num_spaces - 1;
     switch(space_interval_diff){
         case 1:
             two_space_intervals++;
@@ -468,12 +522,13 @@ GameBoard.prototype.portCreation = function() {
 
     // Creates an array with the order of 2 and 3 interval gaps
     // This way, the 3 interval gaps aren't all grouped on one side of the board
+    // NOTE: Intervals of 2 and 3 spaces skip 1 and 2 ports respectively
     for(i=1;i<=num_ports;i++){
         if(i%frequency===0 && three_space_intervals!==0){
-            all_intervals.push(3);
+            all_intervals.push(2);
             three_space_intervals--;
         } else {
-            all_intervals.push(2);
+            all_intervals.push(1);
         }
     }
 
@@ -519,9 +574,11 @@ GameBoard.prototype.portCreation = function() {
         var col = border_vertices[i][1];
         this.boardVertices[row][col].port = this_port;
         i++;
-        var row=border_vertices[i][0];
-        var col = border_vertices[i][1];
-        this.boardVertices[row][col].port = this_port;
+        if(i<len){
+            var row=border_vertices[i][0];
+            var col = border_vertices[i][1];
+            this.boardVertices[row][col].port = this_port;
+        }
 
         // Fast-forwards to next port-buildable vertex, using the array of 2 & 3 gap interval values
         while(all_intervals[0]>0){
@@ -539,7 +596,6 @@ GameBoard.prototype.followRoad = function(location, road, player) {
     var col = location[1];
     var vertex = this.boardVertices[row][col];
     var longest_road = [];
-    // console.log(row, col);
 
     // If this is the starting vertex
     if(!road){
@@ -547,12 +603,10 @@ GameBoard.prototype.followRoad = function(location, road, player) {
         road.push([row, col]);
         for(var key in vertex.connections){
             var next_vertex = this.getRoadDestination([row, col], String(key));
-            if(!!next_vertex){
-                if(vertex.connections[key]!==null){
-                    var temp_road = this.followRoad(next_vertex, road.slice(0), vertex.connections[key].playerID);
-                    if(temp_road.length>longest_road.length){
-                        longest_road = temp_road;
-                    }
+            if(!!next_vertex && vertex.connections[key]!==null){
+                var temp_road = this.followRoad(next_vertex, road.slice(0), vertex.connections[key]);
+                if(temp_road.length>longest_road.length){
+                    longest_road = temp_road;
                 }
             }
         }
@@ -565,17 +619,17 @@ GameBoard.prototype.followRoad = function(location, road, player) {
     } else if(road.length>1 && this.game.getNestedArrayIndex(road, [row, col])===road.length-2){
         return road;
     // Return road if we hit a vertex owned by another player
-    } else if(vertex.owner!==null && vertex.owner.playerID!==player){
+    } else if(vertex.owner!==null && vertex.owner!==player){
         road.push([row, col]);
         return road;
     } else {
         // console.log(this.game.getNestedArrayIndex(road, [row, col]));
         road.push([row, col]);
         for(key in vertex.connections){
-            if(!!vertex.connections[key] && vertex.connections[key].playerID===player){
+            if(vertex.connections[key]===player){
                 next_vertex = this.getRoadDestination([row, col], String(key));
                 if(!!next_vertex){
-                    var temp_road = this.followRoad(next_vertex, road.slice(0), player); 
+                    temp_road = this.followRoad(next_vertex, road.slice(0), player); 
                     if(temp_road.length>longest_road.length){
                         longest_road = temp_road;
                     }
@@ -615,7 +669,29 @@ GameBoard.prototype.getDevelopmentCard = function(player) {
         default:
             throw new Error ('Something weird happened in the deck: Error on this draw - ' + cardChoice);
     }
-
+    currentGameData.child('players').set(JSON.stringify(game.players));
 };
 
-module.exports = GameBoard;
+GameBoard.prototype.moveRobber = function(location) {
+    var old_location;
+    for(var row=0, num_rows=this.boardTiles.length; row<num_rows; row++){
+        for(var col=0, num_cols=this.boardTiles[row].length; col<num_cols; col++){
+            if(this.boardTiles[row][col].robber===true){
+                old_location = [row, col];
+            }
+        }
+    }
+
+    if(old_location!==location){
+        var old_row = old_location[0], old_col=old_location[1];
+        this.boardTiles[old_row][old_col].robber=false;
+        this.boardTiles[location[0]][location[1]].robber=true;
+        return {'boardTiles': JSON.stringify(this.boardTiles)};
+    } else {
+        return {err: "You must move the Robber to another tile!"};
+    }
+};
+
+module.exports = {
+    GameBoard: GameBoard
+};

@@ -5,8 +5,8 @@
 module.exports = {
   // MongoDB connection options
   mongo: {
-    uri: 'mongodb://localhost/settlers-dev'
+    uri: 'mongodb://localhost/hex-dev'
   },
 
-  seedDB: true
+  seedDB: false
 };

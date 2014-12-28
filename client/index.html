@@ -32,14 +32,12 @@
     <!--styles for UI Testing-->
     <!--<link rel="stylesheet" href="app/test.css">-->
     
+
+    <!-- socket.io -->
+    <script src="https://cdn.socket.io/socket.io-1.2.1.js"></script>
+
     <!-- firebase -->
     <script src="https://cdn.firebase.com/js/client/2.0.5/firebase.js"></script>
-    <style>
-/*this is for steve's testing purposes, please delete after use.*/
-.ngi-inspector {
-  color: black !important;
-}
-</style>
 
   </head>
   <body ng-app="settlersApp">
@@ -80,6 +78,7 @@
       <script src="bower_components/lodash/dist/lodash.compat.js"></script>
       <script src="bower_components/angular-ui-router/release/angular-ui-router.js"></script>
       <script src="bower_components/threejs/build/three.js"></script>
+      <script src="bower_components/angular-socket-io/socket.js"></script>
       <!-- endbower -->
     <!-- endbuild -->
 
@@ -95,6 +94,7 @@
           <script src="app/account/signup/signup.controller.js"></script>
           <script src="app/admin/admin.controller.js"></script>
           <script src="app/admin/admin.js"></script>
+          <script src="app/game/game.controller.js"></script>
           <script src="app/game/game.js"></script>
           <script src="app/main/main.controller.js"></script>
           <script src="app/main/main.js"></script>
@@ -110,6 +110,7 @@
           <script src="components/modal/modal.service.js"></script>
           <script src="components/mongoose-error/mongoose-error.directive.js"></script>
           <script src="components/navbar/navbar.controller.js"></script>
+          <script src="components/sockets/sockets.js"></script>
           <!-- endinjector -->
         <!-- endbuild -->
 
