@@ -81,7 +81,7 @@
 	 		<div class='textScreen'></div>
 	 		<div class="input-group chatCtl">
 	 			<span class="input-group-btn">
-	 				<button class="btn btn-default" type="button" ng-click="submitChat()">TO EVERYONE:</button>
+	 				<button class="btn btn-default" type="button" ng-click="board_ctrl.submitChat()">TO EVERYONE:</button>
 	 			</span>
 	 			<input type="text" class="form-control" ng-model="board_ctrl.textContent">
 	 		</div>
@@ -128,7 +128,7 @@
 
 	<table>
 	  <tbody>
-	    <tr ng-repeat="player in board_ctrl.players" ng-class="{thisPlayersTurn: $index===$root.currentPlayer}">
+	    <tr ng-repeat="player in players" ng-class="{thisPlayersTurn: $index===$root.currentPlayer}">
 	      <td><img height="45px"src="assets/images/hoot.png"></td>
 	      <td>{{player.displayName}}</td>
 	      <td>{{player.resourceTotal}}</td>

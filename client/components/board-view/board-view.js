@@ -233,9 +233,10 @@ angular.module('settlersApp')
   };
 })
 
-.controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout){
+.controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
   if(!engineFactory.getGame()){
     $state.go('main.login');
+    return;
   }
   
   var self = this;
@@ -248,13 +249,23 @@ angular.module('settlersApp')
 
   $rootScope.currentRoll = engineFactory.currentDiceRoll();
   $scope.currentGameID = $rootScope.currentGameID;
-  // var dataLink = engineFactory.getDataLink();
-  // var chatLink = dataLink.child('games').child($rootScope.currentGameID).child('chats');
-  // var gameLink = dataLink.child('games').child($rootScope.currentGameID).child('data');
-  // var userLink = dataLink.child('games').child($rootScope.currentGameID);
-  // var userDB = dataLink.child('users');
-  self.players= engineFactory.getGame().players;
-  // pullCurrentUsers();
+
+  $scope.players = engineFactory.getPlayers();
+
+  socket.on('updatePlayers', function(playerArr){
+    engineFactory.updatePlayers(playerArr);
+    $scope.players = playerArr;
+  });
+
+  socket.on('receiveChat', function(message){
+    if (message.name === "GAME"){
+      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
+    }
+    else {
+      $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('.textScreen'));
+    }
+    $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+  });
 
   $scope.toggleDropdown = function($event) {
     $event.preventDefault();
@@ -262,20 +273,23 @@ angular.module('settlersApp')
     $scope.status.isopen = !$scope.status.isopen;
   };
 
-  $scope.submitChat = function(){
-    chatLink.push({name: authFactory.getPlayerName(), text: self.textContent});
-    self.textContent="";
+  self.submitChat = function(){
+    var message = self.textContent.trim();
+    if(message!=="") {
+      socket.emit('messageToServer', {name: authFactory.getPlayerName(), text: message});
+      self.textContent="";
+    }
   };
 
-  function printChatMessage(name, text, systemMessage) {
-    if (systemMessage !== undefined){
-      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
-    }
-    else {
-      $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('.textScreen'));
-    }
-    $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
-  };
+  // function printChatMessage(name, text, systemMessage) {
+  //   if (systemMessage !== undefined){
+  //     $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
+  //   }
+  //   else {
+  //     $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('.textScreen'));
+  //   }
+  //   $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+  // };
   
   $scope.nextTurn = function(){
     if (
@@ -312,32 +326,6 @@ angular.module('settlersApp')
   //     printChatMessage(message.name, message.text, message.systemMessage);
   //   }
   //     else {printChatMessage(message.name, message.text)};
-  // });
-
-  function pullCurrentUsers(){
-    userLink.once('value', function (snapshot) {
-      self.players=[];
-      var snapData = snapshot.val();
-      var userData = snapData.users;
-      var players = engineFactory.getGame().players;
-      for(var user in userData){
-        var resource_sum = 0;
-        for(var resource in players[userData[user].playerNumber].resources){
-          resource_sum+=players[userData[user].playerNumber].resources[resource];
-        }
-        self.players.push({playerName: userData[user].playerName, 
-                          resourceSum: resource_sum, 
-                          longestRoad: players[userData[user].playerNumber].hasLongestRoad,
-                          largestArmy: players[userData[user].playerNumber].hasLargestArmy });
-      }
-      $timeout(function(){
-        $scope.$apply();     
-      });
-    })
-  };
-
-  // userLink.on('child_changed', function(){
-  //   pullCurrentUsers();
   // });
   
 }) 

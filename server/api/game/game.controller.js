@@ -5,6 +5,7 @@ var Game = require('./game.model');
 var User = require('../user/user.model');
 var GameObject = require('../../components/engines/game-engine').GameEngine;
 var PlayerObject = require('../../components/engines/player-engine').Player;
+var helpers = require('../../components/helpers');
 
 // Get list of games
 exports.index = function(req, res) {
@@ -16,22 +17,11 @@ exports.index = function(req, res) {
 
 // Get a single game
 exports.show = function(req, res) {
-  Game.findById(req.params.id, function (err, game) {
+  Game.findById(req.params.id).lean().exec(function (err, game) {
     if(err) { return handleError(res, err); }
     if(!game) { return res.send(404); }
-    for(var i=0, len=game.players.length; i<len; i++){
-      if(String(game.players[i].userRef) !== String(req.user._id)) {
-        game.players[i].userRef = null;
-        game.players[i].resources = null;
-        game.players[i].constructionPool = null;
-        game.players[i].devCards = null;
-        game.players[i].playerQualities = null;
-        game.players[i].tradingCosts = null;
-        game.players[i].ownedProperties = null;
-        game.players[i].rulesValidatedBuildableVertices = null;
-        // DO NOT SAVE - only setting these properties to null so that players can't receive private/irrelevant information of other players
-      }
-    }
+
+    game = helpers.stripPlayerData(req.user._id, game);
     return res.json(game);
   });
 };
@@ -51,8 +41,6 @@ exports.create = function(req, res) {
   
   Game.create(new_game, function(err, game) {
     if(err) { return handleError(res, err); }
-
-    console.log(User);
     
     User.findById(req.user._id, function(userErr, userObj){
       if(userErr) { return handleError(res, err); }
@@ -69,6 +57,7 @@ exports.create = function(req, res) {
 exports.join = function(req, res) {
   var userID = req.user._id;
   var gameID = req.body.gameID;
+  var socket = require('../../components/socket').socket;
   Game.findById(gameID, function(err, game){
     if(err) { return handleError(res, err); }
     if(!game) { return res.json({err:"Game not found!"})}
@@ -76,6 +65,7 @@ exports.join = function(req, res) {
     // Check if user is already in this game. If so, return game
     for(var i =0, len=game.players.length; i<len; i++) {
       if(String(game.players[i].userRef) === String(userID)) {
+        game = helpers.stripPlayerData(req.user._id, game.toObject());
         return res.json(game);
       }
     }
@@ -99,6 +89,8 @@ exports.join = function(req, res) {
         if(userErr) { return handleError(res, userErr); }
         userObj.games.push(game._id);
         userObj.save();
+        socket.to(game._id).emit('updatePlayers', game.players);
+        game = helpers.stripPlayerData(req.user._id, game.toObject());
         return res.json(game);
       });
     } else {

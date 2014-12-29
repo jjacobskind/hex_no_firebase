@@ -1,41 +1,32 @@
 'use strict';
 
 angular.module('settlersApp')
-	.factory('socket', function ($rootScope) {
-	  var socket = io.connect();
-	  var socketID = null;
-	  var socketRoom = null;
+	.factory('socket', function ($rootScope, engineFactory) {
+		var socket;
+		$rootScope.$on('socketConnect', function(event, gameID){
+			socket = io({query: {roomNumber: gameID} });
+		});
 
-	  socket.on('send:socketID', function(data){
-	  	socketID = data.id;
-	  });
 	    return {
-	      on: function (eventName, callback) {
-	        socket.on(eventName, function () {  
-	          var args = arguments;
-	          $rootScope.$apply(function () {
-	            callback.apply(socket, args);
-	          });
-	        });
-	      },
-	      emit: function (eventName, data, callback) {
-	        socket.emit(eventName, data, function () {
-	          var args = arguments;
-	          $rootScope.$apply(function () {
-	            if (callback) {
-	              callback.apply(socket, args);
-	            }
-	          });
-	        })
-	      },
-	      getID: function(){
-	        return socketID;
-	      },
-	      setRoom: function(roomNumber){
-	      	socketRoom = roomNumber;
-	      },
-	      getRoom: function(){
-	      	return socketRoom;
-	      }
+			emit: function (eventName, data, callback) {
+				data.gameID = engineFactory.getGameID();
+				data = "test";
+				socket.emit(eventName, data, function () {
+					var args = arguments;
+					$rootScope.$apply(function () {
+						if (callback) {
+							callback.apply(socket, args);
+						}
+					});
+				});
+			},
+			on: function (eventName, callback) {
+				socket.on(eventName, function () {  
+					var args = arguments;
+					$rootScope.$apply(function () {
+						callback.apply(socket, args);
+					});
+				});
+			}
 	    };
 	});

@@ -94,12 +94,6 @@ angular.module('settlersApp')
 		    currentGameData.child('currentPlayer').set(game.currentPlayer);
 		};
 
-		var _refreshDatabase = function(){
-		    game = new GameEngine(3, 5);
-		    syncDatabase(game);
-		    console.log('the database and local board have been synched and refreshed')
-		};
-
 		function boardSync(currentGameData) {
 			return $q(function(resolve, reject) {
 				game = new GameEngine(3,5);
@@ -151,7 +145,9 @@ angular.module('settlersApp')
 					authFactory.setPlayerID(i);
 				}
 			}
+			$rootScope.players = game.players;
 			boardFactory.drawGame(game);
+			$rootScope.$broadcast('socketConnect', gameID);
 			$state.go('game');
 		};
 
@@ -177,8 +173,7 @@ angular.module('settlersApp')
 				return $q(function(resolve, reject) {
 					resolve(game);
 				});
-			},
-			_refreshDatabase: _refreshDatabase, 
+			}, 
 			buildSettlement: function(location){
 				var settlement_exists = (game.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity === "settlement")
 				var updates = game.buildSettlement(authFactory.getPlayerID(), location);
@@ -233,14 +228,11 @@ angular.module('settlersApp')
 					return true;
 				}
 			},
-			addPlayer: function(){
-				var updates = game.addPlayer();
-				if(updates.hasOwnProperty("err")){
-					console.log(updates.err);
-				} else {
-					updateFireBase(updates);
-				}
-				return game.players[game.players.length];
+			updatePlayers: function(playerArray){
+				game.players = playerArray;
+			},
+			getPlayers: function(){
+				return game.players;
 			},
 			restorePreviousGame: function(gameID) {
 				$http.get('/api/games/' + gameID)
@@ -248,9 +240,6 @@ angular.module('settlersApp')
 			},
 			getGameID: function(){
 				return gameID;
-			},
-			getDataLink: function(){
-				return dataLink;
 			},
 			startGame: function () {
 				game.areAllPlayersAdded = true;
