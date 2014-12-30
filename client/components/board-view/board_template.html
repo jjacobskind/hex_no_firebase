@@ -71,19 +71,13 @@
 					<img src="assets/svg/chatboxOpt.svg" height="30px">
 				</div>	
 
-
-<!-- 				<div href id="button" class="img-container">
-					<div class="centerer"></div>
-					<img src="assets/svg/diceOpt.svg" height="40px" />
-				</div> -->
-
 	 		</div>
 	 		<div class='textScreen'></div>
 	 		<div class="input-group chatCtl">
 	 			<span class="input-group-btn">
 	 				<button class="btn btn-default" type="button" ng-click="board_ctrl.submitChat()">TO EVERYONE:</button>
 	 			</span>
-	 			<input type="text" class="form-control" ng-model="board_ctrl.textContent">
+	 			<input type="text" class="form-control" ng-model="board_ctrl.textContent" id="typeBox" ng-enter="board_ctrl.submitChat()" my-maxlength="160">
 	 		</div>
 			
 		</div>

@@ -252,21 +252,6 @@ angular.module('settlersApp')
 
   $scope.players = engineFactory.getPlayers();
 
-  socket.on('updatePlayers', function(playerArr){
-    engineFactory.updatePlayers(playerArr);
-    $scope.players = playerArr;
-  });
-
-  socket.on('chat:messageToClient', function(message){
-    console.log(message);
-    if (message.name === "GAME"){
-      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(message.text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
-    }
-    else {
-      $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
-    }
-    $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
-  });
 
   $scope.toggleDropdown = function($event) {
     $event.preventDefault();
@@ -279,19 +264,12 @@ angular.module('settlersApp')
     if(message!=="") {
       socket.emit('chat:messageToServer', {text: message});
       self.textContent="";
+      $('<div/>').text(message).prepend($('<em/>').text(authFactory.getPlayerName() +': ')).appendTo($('.textScreen'));
+      $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+      $('#typeBox').focus();
     }
   };
 
-  // function printChatMessage(name, text, systemMessage) {
-  //   if (systemMessage !== undefined){
-  //     $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
-  //   }
-  //   else {
-  //     $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('.textScreen'));
-  //   }
-  //   $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
-  // };
-  
   $scope.nextTurn = function(){
     if (
       ($scope.playerHasRolled === true
@@ -316,19 +294,23 @@ angular.module('settlersApp')
     if($rootScope.currentRoll===7){
       boardFactory.set_someAction("robber");
     }
-   };
+   };  
 
+   // SOCKET LISTENERS
+  socket.on('updatePlayers', function(playerArr){
+    engineFactory.updatePlayers(playerArr);
+    $scope.players = playerArr;
+  });
 
-  // monitor for new chats
-
-  // chatLink.on('child_added', function(snapshot) {
-  //   var message = snapshot.val();
-  //   if (!!message.systemMessage) {
-  //     printChatMessage(message.name, message.text, message.systemMessage);
-  //   }
-  //     else {printChatMessage(message.name, message.text)};
-  // });
-  
+  socket.on('chat:messageToClient', function(message){
+    if (message.name === "GAME"){
+      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(message.text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
+    }
+    else {
+      $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
+    }
+    $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+  });
 }) 
 .directive('board', function(boardFactory) {
     return {
@@ -339,4 +321,35 @@ angular.module('settlersApp')
         boardFactory.insert();
       }
     };
-  });
+  })
+.directive('ngEnter', function () {
+    return function (scope, element, attrs) {
+        element.bind("keydown keypress", function (event) {
+            if(event.which === 13) {
+                scope.$apply(function (){
+                    scope.$eval(attrs.ngEnter);
+                });
+
+                event.preventDefault();
+            }
+        });
+    };
+})
+.directive('myMaxlength', function() {
+  return {
+    require: 'ngModel',
+    link: function (scope, element, attrs, ngModelCtrl) {
+      var maxlength = Number(attrs.myMaxlength);
+      function fromUser(text) {
+          if (text.length > maxlength) {
+            var transformedInput = text.substring(0, maxlength);
+            ngModelCtrl.$setViewValue(transformedInput);
+            ngModelCtrl.$render();
+            return transformedInput;
+          } 
+          return text;
+      }
+      ngModelCtrl.$parsers.push(fromUser);
+    }
+  }; 
+});
