@@ -257,12 +257,13 @@ angular.module('settlersApp')
     $scope.players = playerArr;
   });
 
-  socket.on('receiveChat', function(message){
+  socket.on('chat:messageToClient', function(message){
+    console.log(message);
     if (message.name === "GAME"){
-      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
+      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(message.text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
     }
     else {
-      $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('.textScreen'));
+      $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
     }
     $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
   });
@@ -276,7 +277,7 @@ angular.module('settlersApp')
   self.submitChat = function(){
     var message = self.textContent.trim();
     if(message!=="") {
-      socket.emit('messageToServer', {name: authFactory.getPlayerName(), text: message});
+      socket.emit('chat:messageToServer', {text: message});
       self.textContent="";
     }
   };

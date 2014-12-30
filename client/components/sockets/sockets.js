@@ -1,16 +1,22 @@
 'use strict';
 
 angular.module('settlersApp')
-	.factory('socket', function ($rootScope, engineFactory) {
+	.factory('socket', function ($rootScope, $state, engineFactory, Auth) {
 		var socket;
 		$rootScope.$on('socketConnect', function(event, gameID){
-			socket = io({query: {roomNumber: gameID} });
+			socket = io({query: {roomNumber: gameID, token: Auth.getToken()} });
+			
+			// Automatically logs out user and brings them to login screen if their token is invalid
+			socket.on('validation:forceLogout', function(){
+				Auth.logout();
+				$state.go('main.login');
+			});
 		});
 
+
 	    return {
-			emit: function (eventName, data, callback) {
-				data.gameID = engineFactory.getGameID();
-				data = "test";
+			emit: function (eventName, data) {
+				data.token = Auth.getToken();
 				socket.emit(eventName, data, function () {
 					var args = arguments;
 					$rootScope.$apply(function () {

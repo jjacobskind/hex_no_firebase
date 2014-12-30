@@ -85,6 +85,7 @@ exports.join = function(req, res) {
       }
       game.save();
 
+      // Add game to game list on user document
       User.findById(userID, function(userErr, userObj){
         if(userErr) { return handleError(res, userErr); }
         userObj.games.push(game._id);

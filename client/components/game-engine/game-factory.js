@@ -5,8 +5,8 @@ angular.module('settlersApp')
 		var game;
 
 		var gameID;
-		var dataLink = new Firebase("https://hex-island.firebaseio.com/");
-		var pendingRequests = dataLink.child('pendingRequests')
+		var dataLink = null;
+		var pendingRequests = null;//dataLink.child('pendingRequests')
 		var gameDatabase;
 		var currentGameData;
 
