@@ -233,9 +233,10 @@ angular.module('settlersApp')
   };
 })
 
-.controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout){
+.controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
   if(!engineFactory.getGame()){
     $state.go('main.login');
+    return;
   }
   
   var self = this;
@@ -248,13 +249,9 @@ angular.module('settlersApp')
 
   $rootScope.currentRoll = engineFactory.currentDiceRoll();
   $scope.currentGameID = $rootScope.currentGameID;
-  // var dataLink = engineFactory.getDataLink();
-  // var chatLink = dataLink.child('games').child($rootScope.currentGameID).child('chats');
-  // var gameLink = dataLink.child('games').child($rootScope.currentGameID).child('data');
-  // var userLink = dataLink.child('games').child($rootScope.currentGameID);
-  // var userDB = dataLink.child('users');
-  self.players= engineFactory.getGame().players;
-  // pullCurrentUsers();
+
+  $scope.players = engineFactory.getPlayers();
+
 
   $scope.toggleDropdown = function($event) {
     $event.preventDefault();
@@ -262,21 +259,20 @@ angular.module('settlersApp')
     $scope.status.isopen = !$scope.status.isopen;
   };
 
-  $scope.submitChat = function(){
-    chatLink.push({name: authFactory.getPlayerName(), text: self.textContent});
-    self.textContent="";
+  self.submitChat = function(){
+    if(self.textContent!==null){
+      var message = self.textContent.trim();
+    }
+    if(message.length>0 && self.textContent!==null) {
+      console.log
+      socket.emit('chat:messageToServer', {text: message});
+      $('<div/>').text(message).prepend($('<em/>').text(authFactory.getPlayerName() +': ')).appendTo($('.textScreen'));
+      $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+    }
+    self.textContent=null;
+    $('#typeBox').focus();
   };
 
-  function printChatMessage(name, text, systemMessage) {
-    if (systemMessage !== undefined){
-      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
-    }
-    else {
-      $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('.textScreen'));
-    }
-    $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
-  };
-  
   $scope.nextTurn = function(){
     if (
       ($scope.playerHasRolled === true
@@ -290,56 +286,38 @@ angular.module('settlersApp')
       $rootScope.currentTurn = engineFactory.getGame().turn;
     }  
   };
-  $scope.rollDice = function(){
-    if($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID()){
-      $scope.playerHasRolled = true;
-      engineFactory.rollDice();
-      $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-      chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
-    }
-    $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-    if($rootScope.currentRoll===7){
-      boardFactory.set_someAction("robber");
-    }
-   };
 
-
-  // monitor for new chats
-
-  // chatLink.on('child_added', function(snapshot) {
-  //   var message = snapshot.val();
-  //   if (!!message.systemMessage) {
-  //     printChatMessage(message.name, message.text, message.systemMessage);
-  //   }
-  //     else {printChatMessage(message.name, message.text)};
-  // });
-
-  function pullCurrentUsers(){
-    userLink.once('value', function (snapshot) {
-      self.players=[];
-      var snapData = snapshot.val();
-      var userData = snapData.users;
-      var players = engineFactory.getGame().players;
-      for(var user in userData){
-        var resource_sum = 0;
-        for(var resource in players[userData[user].playerNumber].resources){
-          resource_sum+=players[userData[user].playerNumber].resources[resource];
-        }
-        self.players.push({playerName: userData[user].playerName, 
-                          resourceSum: resource_sum, 
-                          longestRoad: players[userData[user].playerNumber].hasLongestRoad,
-                          largestArmy: players[userData[user].playerNumber].hasLargestArmy });
-      }
-      $timeout(function(){
-        $scope.$apply();     
-      });
-    })
+  self.rollDice = function(){
+    socket.emit('action:rollDice');
   };
+  // $scope.rollDice = function(){
+  //   if($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID()){
+  //     $scope.playerHasRolled = true;
+  //     engineFactory.rollDice();
+  //     $rootScope.currentRoll = engineFactory.getGame().diceNumber;
+  //     chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
+  //   }
+  //   $rootScope.currentRoll = engineFactory.getGame().diceNumber;
+  //   if($rootScope.currentRoll===7){
+  //     boardFactory.set_someAction("robber");
+  //   }
+  //  };  
 
-  // userLink.on('child_changed', function(){
-  //   pullCurrentUsers();
-  // });
-  
+   // SOCKET LISTENERS
+  socket.on('updatePlayers', function(playerArr){
+    engineFactory.updatePlayers(playerArr);
+    $scope.players = playerArr;
+  });
+
+  socket.on('chat:messageToClient', function(message){
+    if (message.name === "GAME"){
+      $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(message.text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
+    }
+    else {
+      $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
+    }
+    $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+  });
 }) 
 .directive('board', function(boardFactory) {
     return {
@@ -350,4 +328,35 @@ angular.module('settlersApp')
         boardFactory.insert();
       }
     };
-  });
+  })
+.directive('ngEnter', function () {
+    return function (scope, element, attrs) {
+        element.bind("keydown keypress", function (event) {
+            if(event.which === 13) {
+                scope.$apply(function (){
+                    scope.$eval(attrs.ngEnter);
+                });
+
+                event.preventDefault();
+            }
+        });
+    };
+})
+.directive('myMaxlength', function() {
+  return {
+    require: 'ngModel',
+    link: function (scope, element, attrs, ngModelCtrl) {
+      var maxlength = Number(attrs.myMaxlength);
+      function fromUser(text) {
+          if (text.length > maxlength) {
+            var transformedInput = text.substring(0, maxlength);
+            ngModelCtrl.$setViewValue(transformedInput);
+            ngModelCtrl.$render();
+            return transformedInput;
+          } 
+          return text;
+      }
+      ngModelCtrl.$parsers.push(fromUser);
+    }
+  }; 
+});
