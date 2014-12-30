@@ -260,14 +260,17 @@ angular.module('settlersApp')
   };
 
   self.submitChat = function(){
-    var message = self.textContent.trim();
-    if(message!=="") {
+    if(self.textContent!==null){
+      var message = self.textContent.trim();
+    }
+    if(message.length>0 && self.textContent!==null) {
+      console.log
       socket.emit('chat:messageToServer', {text: message});
-      self.textContent="";
       $('<div/>').text(message).prepend($('<em/>').text(authFactory.getPlayerName() +': ')).appendTo($('.textScreen'));
       $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
-      $('#typeBox').focus();
     }
+    self.textContent=null;
+    $('#typeBox').focus();
   };
 
   $scope.nextTurn = function(){
@@ -283,18 +286,22 @@ angular.module('settlersApp')
       $rootScope.currentTurn = engineFactory.getGame().turn;
     }  
   };
-  $scope.rollDice = function(){
-    if($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID()){
-      $scope.playerHasRolled = true;
-      engineFactory.rollDice();
-      $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-      chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
-    }
-    $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-    if($rootScope.currentRoll===7){
-      boardFactory.set_someAction("robber");
-    }
-   };  
+
+  self.rollDice = function(){
+    socket.emit('action:rollDice');
+  };
+  // $scope.rollDice = function(){
+  //   if($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID()){
+  //     $scope.playerHasRolled = true;
+  //     engineFactory.rollDice();
+  //     $rootScope.currentRoll = engineFactory.getGame().diceNumber;
+  //     chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
+  //   }
+  //   $rootScope.currentRoll = engineFactory.getGame().diceNumber;
+  //   if($rootScope.currentRoll===7){
+  //     boardFactory.set_someAction("robber");
+  //   }
+  //  };  
 
    // SOCKET LISTENERS
   socket.on('updatePlayers', function(playerArr){

@@ -16,6 +16,7 @@ angular.module('settlersApp')
 
 	    return {
 			emit: function (eventName, data) {
+				if(!data) { data = {}; }
 				data.token = Auth.getToken();
 				socket.emit(eventName, data, function () {
 					var args = arguments;

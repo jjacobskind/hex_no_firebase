@@ -41,10 +41,14 @@ var setUpSocketEvents = function(server) {
 		// Receive chat messages
 		auth.socketListenerFactory(socket, 'chat:messageToServer', helpers.processMessage, function(processedData) {
 
-			// Only send chat if the token is authenticated AND the message is valid
-			if(!!processedData && processedData.valid){
-				socket.broadcast.to(socket.roomName).emit('chat:messageToClient', processedData.message);	// sends to all clients in room except sender
-			}
+			// if(!!processedData){
+				socket.broadcast.to(socket.roomName).emit('chat:messageToClient', processedData);	// sends to all clients in room except sender
+			// }
+		});
+
+		// Receive dice roll requests
+		auth.socketListenerFactory(socket, 'action:rollDice', helpers.rollDice, function(processedData) {
+
 		});
 
 	});

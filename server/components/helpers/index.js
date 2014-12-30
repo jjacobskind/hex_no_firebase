@@ -20,13 +20,12 @@ var stripPlayerData = function(userID, game){
 };
 
 var processMessage = function(userID, gameID, data){
-	var obj = {valid:true};
 	var messageObj = null;
 	var message = data.text.trim();
 	if(message.length>160){ 
 		message = message.slice(0, 160); 
-	} else if(message.length===0){
-		valid = false;
+	} else if(!message || message.length===0){
+		obj = null;
 		return obj;
 	}
 
@@ -51,12 +50,8 @@ var processMessage = function(userID, gameID, data){
 				messageObj = {name: game.players[index].displayName, text: message};
 				game.chatMessages.push(messageObj);
 				game.save();
-			} else {
-				messageObj = null;
-				valid = false;
 			}
-			obj.message = messageObj;
-			return obj;
+			return messageObj;
 		});
 };
 

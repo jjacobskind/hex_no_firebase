@@ -31,6 +31,10 @@ exports.validateToken = function(socket, clientToken, data, cb){
 exports.socketListenerFactory = function(socket, eventName, helperFn, cb){
 	socket.on(eventName, function(data){
 		self.validateToken(socket, data.token, data, helperFn)
-			.then(cb);
+			.then(function(data) {
+				if(!!data){
+					cb(data);
+				}
+			});
 	});
 };
