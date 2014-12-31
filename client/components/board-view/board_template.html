@@ -88,7 +88,7 @@
 	
 	<div class="buttonHolder">
 		<div class="btnMarquee opacityGradLtR">GAME ID: {{$root.currentGameID}}</div>
- 	  <div ng-click="rollDice()" id="button" class="tlk">
+ 	  <div ng-click="board_ctrl.rollDice()" id="button" class="tlk">
  	  	<div class="centerer"></div>
  	  	<img src="assets/svg/diceOpt.svg" height="85px" />
  	  </div>
@@ -142,7 +142,7 @@
 			<div class="centerer"></div>
 			<img src="assets/svg/diceOpt.svg" height="40px" />
 		</div>
-		<span href class="numRoll">YOUR LAST DICE ROLL: {{$root.currentRoll}}</span>
+		<span href class="numRoll">PREVIOUS DICE ROLL: {{$root.currentRoll}}</span>
 	</div>
 	<!-- end diceHolder view -->
 </div>

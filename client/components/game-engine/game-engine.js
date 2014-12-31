@@ -1,16 +1,5 @@
 function GameEngine(small_num, large_num) {
-    this.players = [],
-    this.turn = 0,
-    this.gameBoard = new GameBoard(this, small_num, large_num),
-    //are all players added to the game model, and are we ready to setup the board?
-    this.diceRolled = false;
-    this.diceNumber = null;
-    this.areAllPlayersAdded = false;
-    //true or false: is the stage where players add their first two settlements, and first two roads complete?
-    this.boardIsSetup = false;
-    this.currentPlayer = 0;
-    this.longestRoad = null;
-    //have all players setup their first two settlements and first two roads?
+    this.gameBoard = new GameBoard(this, small_num, large_num);
 }
 
 GameEngine.prototype.calculatePlayerTurn = function() {
@@ -69,14 +58,6 @@ GameEngine.prototype.shuffle = function(array){
        array[j] = temp;
    }
    return array;
-};
-
-GameEngine.prototype.roll = function() {
-    var firstRoll = Math.floor(Math.random() * 6) + 1,
-        secondRoll = Math.floor(Math.random() * 6) + 1,
-        sumDice = firstRoll + secondRoll;
-        this.diceNumber = sumDice;
-        return sumDice;
 };
 
 GameEngine.prototype.findLongestRoad = function() {
@@ -180,40 +161,6 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
   return -1;
 };
 
-GameEngine.prototype.distributeResources = function(sumDice) {
-  var rows = this.gameBoard.boardVertices;
-  var players = this.players;
-  // if player's dice roll doesn't trigger robber fn
-  if (sumDice !== 7) {
-      var resourceArray = [];
-      var boardSnapShot = {};
-      // loop through the game board
-      for (i = 0; i < rows.length; i++) {
-        for (j = 0; j < rows[i].length; j++) {
-          if (rows[i][j].owner !== null) {
-            var resourcesToDistribute = 1;
-            // check adjacent tiles if they contain a settlement or a city
-            if (rows[i][j].settlementOrCity === 'city'){
-              resourcesToDistribute++;
-            }
-            // distribute resources if player contains settlement on adjacent tiles
-            rows[i][j].adjacent_tiles.forEach(function (item) {
-              if (item.chit === sumDice) {
-                resourceArray.push({resourceCount: resourcesToDistribute, resource: item.resource, player: rows[i][j].owner});
-              }
-            })
-            }
-          }
-        }
-        if (resourceArray.length !== 0) {
-              resourceArray.forEach(function(item){
-                var resources = players[+item.player].resources;
-                resources[item.resource] = resources[item.resource] + resourcesToDistribute;
-        })
-      }
-    }
-};
-
 GameEngine.prototype.tradeResources = function(firstPlayer, firstResource, secondPlayer, secondResource) {
 
   var playerOne = game.players[firstPlayer];
@@ -270,17 +217,17 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
   }
   else if (this.boardIsSetup === false && playerID===this.currentPlayer) {
     if ((this.turn < this.players.length) && player.playerQualities.roadSegments === 0) {
-      return this.gameBoard.constructRoad(player,location,direction);
+      return this.gameBoard.placeRoad(player,location,direction);
     }
     else if ((this.turn < (this.players.length * 2)) && player.playerQualities.roadSegments === 1) {
-      return this.gameBoard.constructRoad(player,location,direction);
+      return this.gameBoard.placeRoad(player,location,direction);
     }
     else {
       return {err: "Cannot build another road during setup!"};
     }
   }
   else if(playerID===this.currentPlayer) {
-    return this.gameBoard.constructRoad(player,location,direction);
+    return this.gameBoard.placeRoad(player,location,direction);
   } else {
     return {err: "It is not currently your turn!"};
   }

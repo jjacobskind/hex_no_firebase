@@ -4,24 +4,29 @@ var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
 var GameSchema = new Schema({
-  areAllPlayersAdded: {type: Boolean, require:true},
-  boardIsSetup: {type: Boolean, require:true},
+  areAllPlayersAdded: {type: Boolean, require:true, default:false},
+  boardIsSetup: {type: Boolean, require:true, default: false},
   chatMessages: [{ name: String, text: String }],
-  currentPlayer: {type: Number, require:true},
+  currentPlayer: {type: Number, require:true, default: 0},
   diceNumber: Number,
-  diceRolled: {type: Boolean, required: true},
-  longestRoad: { 
-  	owner: Number,
-  	roadLength: Number
+  diceRolled: {type: Boolean, required: true, default: false},
+  longestRoad: { type: {
+	  	owner: Number,
+	  	roadLength: Number
+	  },
+	  required: true,
+	  default: {
+	  	owner:null,
+	  	roadLength:null
+	  }
   },
-  turn: {type: Number, required: true},
+  turn: {type: Number, required: true, default: 0},
 
   // BOARD
   gameBoard: {
-	boardIsSetup: Boolean,
-	gameIsStarted: Boolean,
-  	boardTiles: [ Schema.Types.Mixed],
-  	boardVertices: [ Schema.Types.Mixed]
+	boardIsSetup: {type: Boolean, require:true, default: false},
+  	boardTiles: {type: [Schema.Types.Mixed], required:true},
+  	boardVertices: {type: [Schema.Types.Mixed], required:true}
   },
 
 	// // PLAYERS
@@ -33,12 +38,13 @@ var GameSchema = new Schema({
 		hasLongestRoad: {type: Boolean, required:true, default: false},
 		hasLargestArmy: {type: Boolean, required:true, default: false},
 		resources: {
-			wool: Number,
-			grain: Number,
-			brick: Number,
-			ore: Number,
-			lumber: Number
+			wool: {type: Number, required:true, default: 0},
+			grain: {type: Number, required:true, default: 0},
+			brick: {type: Number, required:true, default: 0},
+			ore: {type: Number, required:true, default: 0},
+			lumber: {type: Number, required:true, default: 0}
 		},
+		resourceTotal: {type: Number, required: true, default:0},
 		constructionPool: {
 			cities: {type: Number, required:true, default: 4},
 			settlements: {type: Number, required:true, default: 5},
@@ -74,8 +80,7 @@ var GameSchema = new Schema({
 				destination: [Number]
 			}]
 		},
-		rulesValidatedBuildableVertices: [ Schema.Types.Mixed ],
-		resourceTotal: {type: Number, required: true, default:0}
+		rulesValidatedBuildableVertices: [ Schema.Types.Mixed ]
 	}]
 });
 

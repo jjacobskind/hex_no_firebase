@@ -234,7 +234,7 @@ angular.module('settlersApp')
 })
 
 .controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
-  if(!engineFactory.getGame()){
+  if(engineFactory.getGame().currentPlayer===undefined){
     $state.go('main.login');
     return;
   }
@@ -290,18 +290,6 @@ angular.module('settlersApp')
   self.rollDice = function(){
     socket.emit('action:rollDice');
   };
-  // $scope.rollDice = function(){
-  //   if($scope.playerHasRolled === false && $rootScope.currentPlayer === authFactory.getPlayerID()){
-  //     $scope.playerHasRolled = true;
-  //     engineFactory.rollDice();
-  //     $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-  //     chatLink.push({name: 'GAME', text: "On turn " + $rootScope.currentTurn + ", " + authFactory.getPlayerName() + " has rolled a " + $rootScope.currentRoll, systemMessage: true});
-  //   }
-  //   $rootScope.currentRoll = engineFactory.getGame().diceNumber;
-  //   if($rootScope.currentRoll===7){
-  //     boardFactory.set_someAction("robber");
-  //   }
-  //  };  
 
    // SOCKET LISTENERS
   socket.on('updatePlayers', function(playerArr){
@@ -317,6 +305,14 @@ angular.module('settlersApp')
       $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
     }
     $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+  });
+
+  socket.on('action:rollResults', function(data) {
+    engineFactory.updatePlayers(data.players);
+    $rootScope.currentRoll = data.roll;
+    if(data.moveRobber && authFactory.getPlayerID()===$scope.currentPlayer) {
+      boardFactory.set_someAction("robber");
+    }
   });
 }) 
 .directive('board', function(boardFactory) {

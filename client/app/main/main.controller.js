@@ -2,28 +2,19 @@
 
 angular.module('settlersApp')
     .factory('authFactory', function(Auth){
-        var authID, playerData, playerID, playerName, playerFirstName;
-        if(Auth.isLoggedIn()){
-            playerName = Auth.getCurrentUser().name;
-            playerFirstName = playerName.split(" ")[0];
-            authID = Auth.getCurrentUser()._id;
-        }
+        var playerData, playerID, playerDisplayName;
         return {
-            getAuthID: function() {
-                return authID;
-            },
             setPlayerID: function(id){
                 playerID = id;
             },
             getPlayerID: function(){
                 return playerID;
             },
-            getPlayerName: function(full){
-                if(full){
-                    return playerName;
-                } else {
-                    return playerFirstName;
-                }
+            setPlayerName: function(name) {
+                playerDisplayName = name;
+            },
+            getPlayerName: function(){
+                return playerDisplayName;
             }
         };
     })
