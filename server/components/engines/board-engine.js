@@ -1,12 +1,19 @@
-var GameBoard = function(game, small_num, large_num) {
+var GameBoard = function(game, board, small_num, large_num) {
     this.game = game;
-    this.boardTiles = [];
-    this.boardVertices = this.createVertices(small_num, large_num);
-    this.setVerticesOnTile();
-    this.portCreation();
-    this.gameIsInitialized = false;
-    this.boardIsSetup = false;
-    this.gameIsStarted = false; 
+    if(!board) {
+        this.boardTiles = [];
+        this.boardVertices = this.createVertices(small_num, large_num);
+        this.setVerticesOnTile();
+        this.portCreation();
+    } else {
+        this.boardTiles = board.boardTiles;
+        this.boardVertices = board.boardVertices;
+        for(var key in board){
+            if(key!=="boardTiles" && board!=="boardVertices"){
+                this[key] = board[key];
+            }
+        }
+    }
 };
 
 GameBoard.prototype.createVertices = function(small_num, large_num, board) {
@@ -31,7 +38,6 @@ GameBoard.prototype.createVertices = function(small_num, large_num, board) {
     if(!first_or_last  && (small_num!==large_num)){
         board.push(this.createRow(small_num));
     }
-    this.gameIsInitialized = true;
     return board;
 
 };
@@ -112,9 +118,8 @@ GameBoard.prototype.placeSettlement = function(player, location) {
       player.resources.brick--;
     }
     this.game.findLongestRoad();
-    return {'players': JSON.stringify(this.game.players),
-            'boardVertices': JSON.stringify(this.boardVertices)
-    };
+
+    return {'type':'settlement', 'location':location};
 };
 
 
@@ -146,10 +151,7 @@ GameBoard.prototype.upgradeSettlementToCity = function(player, location) {
         player.constructionPool.cities--;
         player.playerQualities.privatePoints++;
         player.ownedProperties.cities.push({settlementID: location});
-        return {
-            'players': JSON.stringify(this.game.players),
-            'boardVertices': JSON.stringify(this.boardVertices)
-        };
+        return {'type': 'city', 'location': location};
     }
 
 };
@@ -198,7 +200,7 @@ GameBoard.prototype.validateNewVertices = function(player, endpointLocation) {
     });
 };
 
-GameBoard.prototype.constructRoad = function(player, currentLocation, newDirection) {
+GameBoard.prototype.placeRoad = function(player, currentLocation, newDirection) {
     if (player.constructionPool.roads === 0) {
         return {err: "no roads left"};
     }
@@ -269,10 +271,11 @@ GameBoard.prototype.constructRoad = function(player, currentLocation, newDirecti
           player.resources.brick--;
         }
         this.game.findLongestRoad();
-        return {
-            players: JSON.stringify(this.game.players),
-            boardVertices: JSON.stringify(this.boardVertices)
-        };
+        return { 'location': currentLocation, 
+                'locationDirection':newDirection, 
+                'destination': destinationCoords,
+                'destinationDirection': originDirection
+            };
     }
 };
 

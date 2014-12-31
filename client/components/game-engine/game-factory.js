@@ -1,12 +1,12 @@
 'use strict';
 
 angular.module('settlersApp')
-	.factory('engineFactory', function($q, $rootScope, $timeout, $http, $state, boardFactory, Auth, authFactory){
-		var game;
+	.factory('engineFactory', function($q, $rootScope, $timeout, $http, $state, boardFactory, Auth, authFactory, socket){
+		var game = new GameEngine(3, 5);
 
 		var gameID;
 		var dataLink = null;
-		var pendingRequests = null;//dataLink.child('pendingRequests')
+		var pendingRequests = null;
 		var gameDatabase;
 		var currentGameData;
 
@@ -16,6 +16,39 @@ angular.module('settlersApp')
 		    return tempArr;
 		};
 
+		var engineUpdateListeners = function() {
+
+			// Receives notification that a building has been constructed
+			socket.on('action:buildingToClient', function(data){
+				var row = data.location[0], col = data.location[1];
+				game.players = data.playerArr;
+				game.gameBoard.boardVertices[row][col].owner = data.PlayerID;
+				game.gameBoard.boardVertices[row][col].hasSettlementOrCity = data.type;
+				game.longestRoad = data.longestRoad;
+				if(data.type==='settlement'){
+					boardFactory.placeSettlement(data.playerID, data.location);
+				} else {
+					boardFactory.upgradeSettlementToCity(data.location);
+				}
+			});
+
+			// Receives notification that a road has been constructed
+			socket.on('action:roadToClient', function(data){
+				game.players = data.playerArr;
+
+				// Set player as owner of appropriate road from original location
+				var row = data.location[0], col = data.location[1];
+				game.gameBoard.boardVertices[row][col].connections[data.locationDirection] = data.PlayerID;
+
+				// Set player as owner of appropriate road from destination
+				row = data.destination[0], col = data.destination[1];
+				game.gameBoard.boardVertices[row][col].connections[data.destinationDirection] = data.PlayerID;
+
+				game.longestRoad = data.longestRoad;
+				boardFactory.buildRoad(data.playerID, data.location, data.destination);
+			});
+		};
+		
 		function firebaseEventListener(){
 			//this will be applied on the new game and the existing game
 			currentGameData.on("child_changed", function(childSnapshot) {
@@ -86,13 +119,6 @@ angular.module('settlersApp')
 			});
 		};
 
-		function syncDatabase(game) {
-		    currentGameData.child('players').set(JSON.stringify(game.players));
-		    currentGameData.child('boardTiles').set(JSON.stringify(game.gameBoard.boardTiles));
-		    currentGameData.child('boardVertices').set(JSON.stringify(game.gameBoard.boardVertices));
-		    currentGameData.child('turn').set(game.turn);
-		    currentGameData.child('currentPlayer').set(game.currentPlayer);
-		};
 
 		function boardSync(currentGameData) {
 			return $q(function(resolve, reject) {
@@ -133,9 +159,18 @@ angular.module('settlersApp')
 		};
 
 		var prepGameOnClient = function(data){
-			game = data;
-			// following line should be refactored later so that we don't have to create an unnecessary game object
-			game.gameBoard.getRoadDestination = new GameEngine(3, 5).gameBoard.getRoadDestination;
+
+			// Need to load in game data without losing references to functions on the prototype chain
+			for(var key in data){
+				if(key==='gameBoard'){
+					for(var key2 in data.gameBoard){
+						game[key][key2] = data[key][key2];
+					}
+				} else {
+					game[key] = data[key];
+				}
+			}
+
 			gameID = game._id;
 			$rootScope.currentGameID = gameID;
 			var currentUserID = Auth.getCurrentUser()._id
@@ -143,11 +178,14 @@ angular.module('settlersApp')
 				if(game.players[i].userRef === currentUserID){
 					$rootScope.playerData = game.players[i];
 					authFactory.setPlayerID(i);
+					authFactory.setPlayerName(game.players[i].displayName);
 				}
 			}
 			$rootScope.players = game.players;
 			boardFactory.drawGame(game);
-			$rootScope.$broadcast('socketConnect', gameID);
+			socket.connect(gameID);
+			engineUpdateListeners();
+			var a = new GameEngine(3, 5);
 			$state.go('game');
 		};
 
@@ -176,19 +214,18 @@ angular.module('settlersApp')
 			}, 
 			buildSettlement: function(location){
 				var settlement_exists = (game.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity === "settlement")
-				var updates = game.buildSettlement(authFactory.getPlayerID(), location);
-				if(updates.hasOwnProperty("err")){
-					console.log(updates.err);
+				var construction = game.buildSettlement(authFactory.getPlayerID(), location);
+				if(construction.hasOwnProperty("err")){
+					console.log(construction.err);
 					return false;
 				}
 				else {
 					if(!settlement_exists){
-						boardFactory.placeSettlement(authFactory.getPlayerID(), location);
+						boardFactory.placeSettlement(authFactory.getPlayerID(), location);		
 					} else {
 						boardFactory.upgradeSettlementToCity(authFactory.getPlayerID(), location);
 					}
-					updateFireBase(updates);
-					dataLink.child('games').child($rootScope.currentGameID).child('chats').push({text:authFactory.getPlayerName() + " has built a settlement", systemMessage:true});
+					socket.emit('action:buildingToServer', construction);
 					return true;
 				}
 			},
@@ -204,15 +241,13 @@ angular.module('settlersApp')
 				}
 			},
 			buildRoad: function(location, direction){
-				var updates = game.buildRoad(authFactory.getPlayerID(), location, direction);
-				if(updates.hasOwnProperty("err")){
-					console.log(updates.err);
+				var road = game.buildRoad(authFactory.getPlayerID(), location, direction);
+				if(road.hasOwnProperty("err")){
+					console.log(road.err);
 					return false;
 				} else {
-					var destination = game.gameBoard.getRoadDestination(location, direction);
-					boardFactory.buildRoad(authFactory.getPlayerID(), location, destination);
-					updateFireBase(updates);
-					dataLink.child('games').child($rootScope.currentGameID).child('chats').push({text:authFactory.getPlayerName() + " has built a road", systemMessage:true});
+					boardFactory.buildRoad(authFactory.getPlayerID(), road.location, road.destination);
+					socket.emit('action:roadToServer', road);
 					return true;
 				}
 			},
@@ -267,18 +302,6 @@ angular.module('settlersApp')
 			},
 			currentDiceRoll: function(){
 				return game.diceNumber;
-			},
-			rollDice: function() {
-				//tell player they can build and trade after this is done
-				var diceRoll = game.roll();
-				pendingRequests.child(gameID + '/rollRequest').set(true);
-				// game.distributeResources(diceRoll);
-				// var onComplete = function() {
-				// 	game.players[$rootScope.playerData.playerID] = $rootScope.playerData;
-				// 	$rootScope.$digest();
-				// };
-				// currentGameData.child('players').set(JSON.stringify(game.players), onComplete);
-				return diceRoll;
 			},
 			endTurn: function () {
 				var deferAction = $q.defer();

@@ -4,6 +4,7 @@ var _ = require('lodash');
 var Game = require('./game.model');
 var User = require('../user/user.model');
 var GameObject = require('../../components/engines/game-engine').GameEngine;
+var BoardObject = require('../../components/engines/game-engine').BoardEngine;
 var PlayerObject = require('../../components/engines/player-engine').Player;
 var helpers = require('../../components/helpers');
 
@@ -30,14 +31,12 @@ exports.show = function(req, res) {
 exports.create = function(req, res) {
   var small_num = req.body.small_num;
   var big_num = req.body.big_num;
-  var new_game = new GameObject(small_num, big_num);
+  var new_game = new GameObject(null, small_num, big_num);
   new_game.gameBoard = {
-    boardIsSetup: new_game.gameBoard.boardIsSetup,
-    gameIsStarted: new_game.gameBoard.gameIsStarted,
     boardTiles: new_game.gameBoard.boardTiles,
     boardVertices: new_game.gameBoard.boardVertices
   };
-  new_game.players.push(new PlayerObject(req.user, new_game.players.length));
+  new_game.players.push(new PlayerObject(null, req.user, new_game.players.length));
   
   Game.create(new_game, function(err, game) {
     if(err) { return handleError(res, err); }
@@ -79,7 +78,7 @@ exports.join = function(req, res) {
     var max_players = Math.round(num_tiles/5);
 
     if(max_players>game.players.length && !game.areAllPlayersAdded){
-      game.players.push(new PlayerObject(req.user, game.players.length));
+      game.players.push(new PlayerObject(null, req.user, game.players.length));
       if(max_players===game.players.length){
         game.areAllPlayersAdded = true;
       }

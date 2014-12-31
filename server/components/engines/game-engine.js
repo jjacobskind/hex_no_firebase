@@ -1,19 +1,26 @@
-var GameBoard = require('./board-engine').GameBoard;
+var GameBoardEngine = require('./board-engine');
+var GameBoard = GameBoardEngine.GameBoard;
 var Player = require('./player-engine').Player;
 
-function GameEngine(small_num, large_num) {
-    this.players = [],
-    this.turn = 0,
-    this.gameBoard = new GameBoard(this, small_num, large_num),
-    //are all players added to the game model, and are we ready to setup the board?
-    this.diceRolled = false;
-    this.diceNumber = null;
-    this.areAllPlayersAdded = false;
-    //true or false: is the stage where players add their first two settlements, and first two roads complete?
-    this.boardIsSetup = false;
-    this.currentPlayer = 0;
-    this.longestRoad = null;
-    //have all players setup their first two settlements and first two roads?
+var GameEngine = function(game, small_num, large_num) {
+    this.players = [];
+
+    // If a game object is not passed in, create a new game (Mongo schema will add properties with default values)
+    if(!game){
+      this.gameBoard = new GameBoard(this, null, small_num, large_num);
+
+    // Otherwise, populate this GameEngine object with the properties of game
+    } else {
+      for(var key in game){
+        if(key!=="gameBoard" && key!=="players"){
+          this[key] = game[key];
+        }
+      }
+      this.gameBoard = new GameBoard(this, game.gameBoard);
+      for(var i=0, len=game.players.length; i<len; i++){
+        this.players.push(new Player(game.players[i]));
+      }
+    }
 }
 
 GameEngine.prototype.calculatePlayerTurn = function() {
@@ -183,7 +190,7 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
   return -1;
 };
 
-GameEngine.prototype.distributeResources = function(sumDice) {
+exports.distributeResources = function(sumDice) {
   var rows = this.gameBoard.boardVertices;
   var players = this.players;
   // if player's dice roll doesn't trigger robber fn
@@ -218,24 +225,24 @@ GameEngine.prototype.distributeResources = function(sumDice) {
 };
 
 GameEngine.prototype.tradeResources = function(firstPlayer, firstResource, secondPlayer, secondResource) {
-
-  var playerOne = game.players[firstPlayer];
-  var playerTwo = game.players[secondPlayer];
-  for (var resource in firstResource) {
-    playerOne.resources[resource] = playerOne.resources[resource] - firstResource[resource];
-    playerTwo.resources[resource] = playerTwo.resources[resource] + firstResource[resource];
-  }
-  for (var resource in secondResource) {
-    playerOne.resources[resource] = playerOne.resources[resource] + secondResource[resource];
-    playerTwo.resources[resource] = playerTwo.resources[resource] - secondResource[resource];
-  }
-  currentGameData.child('players').set(JSON.stringify(game.players));
+  console.log("Need to refactor code in GameEngine.prototype.tradeResources!");
+  // var playerOne = game.players[firstPlayer];
+  // var playerTwo = game.players[secondPlayer];
+  // for (var resource in firstResource) {
+  //   playerOne.resources[resource] = playerOne.resources[resource] - firstResource[resource];
+  //   playerTwo.resources[resource] = playerTwo.resources[resource] + firstResource[resource];
+  // }
+  // for (var resource in secondResource) {
+  //   playerOne.resources[resource] = playerOne.resources[resource] + secondResource[resource];
+  //   playerTwo.resources[resource] = playerTwo.resources[resource] - secondResource[resource];
+  // }
+  // currentGameData.child('players').set(JSON.stringify(game.players));
 };
 
 GameEngine.prototype.buildSettlement = function(playerID, location) {
   var player = this.players[playerID];
   if(this.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity === "settlement"){
-    return this.upgradeSettlementToCity(playerID, location);
+    return this.gameBoard.upgradeSettlementToCity(playerID, location);
   }
   else if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
     return {err: "Not enough resources to build a settlement!"};
@@ -273,17 +280,17 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
   }
   else if (this.boardIsSetup === false && playerID===this.currentPlayer) {
     if ((this.turn < this.players.length) && player.playerQualities.roadSegments === 0) {
-      return this.gameBoard.constructRoad(player,location,direction);
+      return this.gameBoard.placeRoad(player,location,direction);
     }
     else if ((this.turn < (this.players.length * 2)) && player.playerQualities.roadSegments === 1) {
-      return this.gameBoard.constructRoad(player,location,direction);
+      return this.gameBoard.placeRoad(player,location,direction);
     }
     else {
       return {err: "Cannot build another road during setup!"};
     }
   }
   else if(playerID===this.currentPlayer) {
-    return this.gameBoard.constructRoad(player,location,direction);
+    return this.gameBoard.placeRoad(player,location,direction);
   } else {
     return {err: "It is not currently your turn!"};
   }
@@ -378,6 +385,4 @@ GameEngine.prototype.findObjectDifferences = function(old_arr, new_arr){
   }
 };
 
-module.exports = {
-    GameEngine: GameEngine
-};
+exports.GameEngine = GameEngine;
