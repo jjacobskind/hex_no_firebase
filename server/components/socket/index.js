@@ -73,6 +73,16 @@ var setUpSocketEvents = function(server) {
 			});
 		});
 
+		// Receive notification that turn is being advanced
+		auth.socketListenerFactory(socket, 'action:roadToServer', helpers.constructRoad, function(processedData) {
+			var message = processedData.message;
+			delete processedData.message;
+			socket.broadcast.to(socket.roomName).emit('action:roadToClient', processedData);
+			message.then(function(data){
+				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
+			});
+		});
+
 	});
 };
 

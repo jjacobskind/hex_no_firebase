@@ -2,6 +2,17 @@ function GameEngine(small_num, large_num) {
     this.gameBoard = new GameBoard(this, small_num, large_num);
 }
 
+GameEngine.prototype.advancePlayerTurn = function(playerID) {
+  if(playerID===this.currentPlayer){
+    this.turn++;
+    this.diceRolled = false;
+    this.calculatePlayerTurn();
+    return this.currentPlayer;
+  } else {
+    return null;
+  }
+}
+
 GameEngine.prototype.calculatePlayerTurn = function() {
 
  var currentTurn = this.turn, playerLength = this.players.length;

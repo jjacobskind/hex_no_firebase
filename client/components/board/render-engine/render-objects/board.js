@@ -1,17 +1,3 @@
-// BOARD SETUP***********************************************************
-var tile_depth = 5;
-
-var border_material = new THREE.MeshLambertMaterial( { color: 0xffffff, wireframe: false } );
-var tile_material = new THREE.MeshLambertMaterial( { color: 0xff8000, wireframe: false } );
-var materials = [ border_material, tile_material ];
-
-var Game = function(scene, game, scale) {
-	this.scene = scene;
-
-	this.board = new Board(this, game.gameBoard.getRoadDestination, game.gameBoard.boardVertices, game.gameBoard.boardTiles, scale);
-
-};
-
 var Board = function(game, getRoadDestination, vertices, tiles, scale) {
 	this.game = game;
 	this.boardVertices=vertices; 
@@ -41,7 +27,7 @@ var Board = function(game, getRoadDestination, vertices, tiles, scale) {
 
 	// Set extrude settings to be applied to hex tile shape
 	this.extrudeSettings = {
-		amount			: tile_depth,
+		amount			: this.tile_depth,
 		steps			: 1,
 		material		: 1,
 		extrudeMaterial : 0,
@@ -65,6 +51,9 @@ var Board = function(game, getRoadDestination, vertices, tiles, scale) {
 	this.tiles = this.drawBoard(tiles);
 	this.populateBoard(getRoadDestination, tiles);
 };
+
+// Variables that are consistent across all instances
+Board.prototype.tile_depth = 5;
 
 Board.prototype.drawBoard = function(tiles) {
 	var outer_middle_distance = Math.sqrt(Math.pow(this.side_length*4,2) - Math.pow(0.5*this.side_length*4, 2));
@@ -425,149 +414,6 @@ Board.prototype.playerColor = function(playerID){
 		case 3:
 			return 0xf28100;
 	}
-};
-
-var Tile = function(board, coordinates, resource, number) {
-	this.board = board;
-	this.tile = this.drawTile(coordinates, resource);
-	if(resource!=="desert"){
-		this.chit = this.drawChit(coordinates, number);
-	}
-};
-
-
-Tile.prototype.drawTile = function(coordinates, resource) {
-	var white_material = new THREE.MeshLambertMaterial( { color: 0xffffff, wireframe: false } );
-	var colored_material = new THREE.MeshLambertMaterial( { color: this.paintResource(resource), wireframe: false } );
-	var texture = new THREE.ImageUtils.loadTexture('assets/images/tile_textures/' + resource + '.jpg');
-	texture.repeat.x = 0.5/this.board.side_length;
-	texture.repeat.y = 0.5/this.board.side_length;
-	texture.offset.x = (this.board.side_length) * texture.repeat.x;
-	texture.offset.y = (this.board.side_length) * texture.repeat.y;
-
-	var textured_material = new THREE.MeshLambertMaterial( {map:texture});
-
-	var materials = new THREE.MeshFaceMaterial([white_material, textured_material]);
-	var tile = new THREE.Mesh( this.board.tile_geometry, materials );
-	tile.position.set( coordinates[0], 0, coordinates[1] );
-	tile.rotation.set(Math.PI/2, 0, Math.PI/6);
-	return tile;
-};
-
-Tile.prototype.drawChit = function(coordinates, chit_number) {
-	var white_material = new THREE.MeshLambertMaterial( { color: 0xffffff, wireframe: false} );
-
-	var texture = new THREE.ImageUtils.loadTexture( 'assets/images/' + chit_number + '.jpg' );
-	texture.repeat.x = 3/this.board.side_length;
-	texture.repeat.y = 3/this.board.side_length;
-	texture.offset.x = (this.board.side_length/6) * texture.repeat.x;
-	texture.offset.y = (this.board.side_length/6) * texture.repeat.y;
-
-	var number_material = new THREE.MeshLambertMaterial({map: texture});
-	var materials = [number_material, white_material];
-
-	var chip_geometry = new THREE.ExtrudeGeometry(this.board.chip_shape, {amount:1, bevelEnabled:false});
-
-	// Applies white_material to all faces other than those facing upwards
-	for(var i=0; i<252; i++){
-		if(i===62){
-			i=124;
-		}
-		chip_geometry.faces[i].materialIndex = 1;
-	}
-
-	var num_chip = new THREE.Mesh(chip_geometry, new THREE.MeshFaceMaterial(materials));
-	num_chip.position.set(coordinates[0], 0.5, coordinates[1]);
-	num_chip.rotation.set(Math.PI/2, Math.PI, 0);
-	return num_chip;
-};
-
-// Returns tile texture based on the resource passed into it
-Tile.prototype.paintResource = function(resource){
-	switch(resource){
-		case "desert":
-			return 'assets/images/tile_textures/desert.jpg';
-		case "ore":
-			return 'assets/images/tile_textures/ore.jpg';
-		case "lumber":
-			return 'assets/images/tile_textures/lumber.jpg';
-		case "wool":
-			return 'assets/images/tile_textures/lumber.jpg';
-		case "brick":
-			return 'assets/images/tile_textures/brick.jpg';
-		case "grain":
-			return 'assets/images/tile_textures/lumber.jpg';
-	}
-};
-
-var Building = function(board, building_type, owner, location){
-	this.board = board;
-	var coords = this.board.verticesToCoordinates(location);
-	this.x = coords[0];
-	this.z = coords[1];
-	this.color = this.board.playerColor(owner);
-	this.building = null;
-
-	switch(building_type){
-		case "settlement":
-			this.settlementShape();
-			break;
-		case "city":	
-			this.cityShape();
-			break;
-		default:
-			throw ("Invalid building type!");
-			break;
-	}
-};
-
-Building.prototype.settlementShape = function() {
-	var scale = this.board.scale;
-	var pts = [];
-	pts.push(new THREE.Vector2(-5 * scale, 0));
-	pts.push(new THREE.Vector2(5 * scale, 0));
-	pts.push(new THREE.Vector2(5 * scale, 7 * scale));
-	pts.push(new THREE.Vector2(8 * scale, 7 * scale));
-	pts.push(new THREE.Vector2(0, 13 * scale));
-	pts.push(new THREE.Vector2(-8 * scale, 7 * scale));
-	pts.push(new THREE.Vector2(-5 * scale, 7 * scale));
-	pts.push(new THREE.Vector2(-5 * scale, 0));
-
-	var shape = new THREE.Shape(pts);
-	var geometry = this.makeGeometry(shape);
-	this.building = geometry;
-};
-
-Building.prototype.cityShape = function(){
-	var scale = this.board.scale;
-	var pts = [];
-	pts.push(new THREE.Vector2(-10 * scale, 0));
-	pts.push(new THREE.Vector2(7 * scale, 0));
-	pts.push(new THREE.Vector2(7 * scale, 9 * scale));
-	pts.push(new THREE.Vector2(0, 9 * scale));
-	pts.push(new THREE.Vector2(0, 15 * scale));
-	pts.push(new THREE.Vector2(-5 * scale, 20 * scale));
-	pts.push(new THREE.Vector2(-10 * scale, 15 * scale));
-	pts.push(new THREE.Vector2(-10 * scale, 0));
-
-	var shape = new THREE.Shape(pts);
-	var geometry = this.makeGeometry(shape);
-	this.building = geometry;
-};
-
-Building.prototype.makeGeometry = function(shape){
-	var depth = this.board.building_depth;
-	var building_geometry = new THREE.ExtrudeGeometry(shape, {amount:depth,
-																bevelEnabled:false
-																});
-
-	var material = new THREE.MeshLambertMaterial( { color: this.color, wireframe: false } );
-
-	var building = new THREE.Mesh(building_geometry, material);
-	var rotation_angle = (Math.PI/6)*Math.floor(Math.random()*6);
-	building.position.set( this.x, 0, this.z - (depth/2) );
-	// building.rotation.set(0, rotation_angle, 0);
-	return building;
 };
 
 Board.prototype.drawRobber = function(location){

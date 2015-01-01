@@ -70,6 +70,7 @@ exports.constructRoad = function(userID, gameID, data){
 				game.longestRoad = gameObj.longestRoad;
 				game.save();
 				roadObj.playerID = playerIndex; 
+				roadObj.longestRoad = game.longestRoad;
 				roadObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has built a road"});
 				return roadObj;
 			}
