@@ -10,6 +10,7 @@ var GameSchema = new Schema({
   currentPlayer: {type: Number, require:true, default: 0},
   diceNumber: Number,
   diceRolled: {type: Boolean, required: true, default: false},
+  lockedPhase: {type: Boolean, required: true, default: true},
   longestRoad: { type: {
 	  	owner: Number,
 	  	roadLength: Number

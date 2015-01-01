@@ -37,7 +37,7 @@
     <script src="https://cdn.socket.io/socket.io-1.2.1.js"></script>
 
   </head>
-  <body ng-app="settlersApp">
+  <body ng-app="hexIslandApp">
     
     <!--[if lt IE 7]>
       <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
@@ -82,7 +82,7 @@
         <!-- build:js({.tmp,client}) app/app.js -->
         <script src="app/app.js"></script>
           <!-- injector:js -->
-          <script src="components/board-view/three.min.js"></script>
+          <script src="components/board/render-engine/libraries/three.min.js"></script>
           <script src="components/game-engine/board-engine.js"></script>
           <script src="components/game-engine/game-engine.js"></script>
           <script src="app/account/account.js"></script>
@@ -97,12 +97,17 @@
           <script src="app/main/main.js"></script>
           <script src="components/auth/auth.service.js"></script>
           <script src="components/auth/user.service.js"></script>
-          <script src="components/board-view/Mirror.js"></script>
-          <script src="components/board-view/OrbitControls.js"></script>
-          <script src="components/board-view/WaterShader.js"></script>
-          <script src="components/board-view/board-view.js"></script>
-          <script src="components/board-view/settlers.js"></script>
-          <script src="components/game-engine/game-factory.js"></script>
+          <script src="components/board/board.controller.js"></script>
+          <script src="components/board/board.factory.js"></script>
+          <script src="components/board/render-engine/libraries/Mirror.js"></script>
+          <script src="components/board/render-engine/libraries/OrbitControls.js"></script>
+          <script src="components/board/render-engine/libraries/WaterShader.js"></script>
+          <script src="components/board/render-engine/render-objects/board.js"></script>
+          <script src="components/board/render-engine/render-objects/building.js"></script>
+          <script src="components/board/render-engine/render-objects/game.js"></script>
+          <script src="components/board/render-engine/render-objects/tile.js"></script>
+          <script src="components/custom-directives/index.js"></script>
+          <script src="components/game-engine/engine.factory.js"></script>
           <script src="components/game-engine/player-engine.js"></script>
           <script src="components/modal/modal.service.js"></script>
           <script src="components/mongoose-error/mongoose-error.directive.js"></script>

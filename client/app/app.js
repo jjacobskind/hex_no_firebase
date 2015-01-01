@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('settlersApp', [
+angular.module('hexIslandApp', [
   'ngCookies',
   'ngResource',
   'ngSanitize',
