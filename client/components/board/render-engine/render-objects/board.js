@@ -1,59 +1,33 @@
-var Board = function(game, getRoadDestination, vertices, tiles, scale) {
-	this.game = game;
-	this.boardVertices=vertices; 
+var Board = function(scene, game, scale) {
+	this.scene = scene;
+
+	// Board values
+	this.boardVertices = game.gameBoard.boardVertices; 	//will be overwritten with with game rendering board vertices
 	this.robbers = [];
-	this.small_num = tiles[0].length;
-	this.big_num = tiles[Math.floor(tiles.length/2)].length;
-	this.getRoadDestination = getRoadDestination;
-	this.ports = [];
+	this.small_num = game.gameBoard.boardTiles[0].length;
+	this.big_num = game.gameBoard.boardTiles[Math.floor(game.gameBoard.boardTiles.length/2)].length;
+	this.ports = [];	//Stored in array so that faces are always camera-facing
+
+	// the size at which the board is rendered can be adjusted by changing this.scale
+	// default value of this.scale is 1 (ex: setting this.scale to 2 will draw the board twice as large)
 	if(!!scale && scale>10) {
 		this.scale=10;
 	} 
-	else if(!!scale){
+	else if(!!scale && scale<0){
 		this.scale = scale;
 	} else {
 		this.scale = 1;
 	}
-	this.building_depth = 15 * this.scale;
+
+	// Values used by multiple objects
 	this.side_length = 30 * this.scale;
+	this.bevelSize = 4 * this.scale;
+	this.getRoadDestination = game.gameBoard.getRoadDestination;
 
-	// Create shape for hex tile geometry
-	var pts = [], numPts = 6;
-	for ( var i = 0; i < numPts * 2; i+=2 ) {
-		var a = i / numPts * Math.PI;
-		pts.push( new THREE.Vector2 ( Math.cos( a ) * this.side_length, Math.sin( a ) * this.side_length ) );
-	}
-	var hex = new THREE.Shape( pts );
-
-	// Set extrude settings to be applied to hex tile shape
-	this.extrudeSettings = {
-		amount			: this.tile_depth,
-		steps			: 1,
-		material		: 1,
-		extrudeMaterial : 0,
-		bevelEnabled	: true,
-		bevelThickness  : this.scale,
-		bevelSize       : 4 * this.scale,
-		bevelSegments   : 1,
-	};
-	this.tile_geometry = new THREE.ExtrudeGeometry( hex, this.extrudeSettings );
-
-	// Create geometry for number chits
-	var circlePts = [];
-	var numCirclePts = 32
-	for(i=0;i<numCirclePts*2;i++){
-		var a = i/numCirclePts * Math.PI;
-		circlePts.push(new THREE.Vector2(Math.cos(a)* this.side_length / 4, Math.sin(a)* this.side_length /4));
-	}
-
-	this.chip_shape = new THREE.Shape(circlePts);
-
-	this.tiles = this.drawBoard(tiles);
-	this.populateBoard(getRoadDestination, tiles);
+	// These functions draw the board and place objects on the board
+	this.tiles = this.drawBoard(game.gameBoard.boardTiles);
+	this.populateBoard(game.gameBoard.boardTiles);
 };
-
-// Variables that are consistent across all instances
-Board.prototype.tile_depth = 5;
 
 Board.prototype.drawBoard = function(tiles) {
 	var outer_middle_distance = Math.sqrt(Math.pow(this.side_length*4,2) - Math.pow(0.5*this.side_length*4, 2));
@@ -65,9 +39,9 @@ Board.prototype.drawBoard = function(tiles) {
 		for(var col=0, num_cols=tiles[row].length;col<num_cols; col++){
 			var coordinates = this.indicesToCoordinates([row, col]);
 			var obj=new Tile(this, coordinates, tiles[row][col].resource, tiles[row][col].chit);
-			this.game.scene.add(obj.tile);
+			this.scene.add(obj.tile);
 			if(!!obj.chit){
-				this.game.scene.add(obj.chit);
+				this.scene.add(obj.chit);
 			}
 			board_tile_row.push(obj);
 		}
@@ -142,7 +116,17 @@ Board.prototype.drawPort = function(location1, location2, resource){
 	var white_material = new THREE.MeshLambertMaterial( { color: 0xffffff, wireframe: false} );
 	var materials = [textured_material, white_material];
 
-	var port_geometry = new THREE.ExtrudeGeometry(this.chip_shape, {amount:5, bevelEnabled:false});
+	// Create chip shape for temporary port token
+	var circlePts = [];
+	var numCirclePts = 32
+	for(i=0;i<numCirclePts*2;i++){
+		var a = i/numCirclePts * Math.PI;
+		circlePts.push(new THREE.Vector2(Math.cos(a)* this.side_length / 4, Math.sin(a)* this.side_length /4));
+	}
+
+	var chitShape = new THREE.Shape(circlePts);
+
+	var port_geometry = new THREE.ExtrudeGeometry(chitShape, {amount:5, bevelEnabled:false});
 
 	// Applies white_material to all faces other than those facing upwards
 	if(resource==="general") {
@@ -182,7 +166,7 @@ Board.prototype.drawPort = function(location1, location2, resource){
 	port.position.set(x_avg, 1, z_avg);
 	port.rotation.set(Math.PI/2, 0, 0);
 	this.ports.push(port);
-	this.game.scene.add(port);
+	this.scene.add(port);
 };
 
 Board.prototype.indicesToCoordinates = function(indices){
@@ -218,7 +202,7 @@ Board.prototype.coordinatesToVertices = function(coordinates){
 	var x = coordinates[0];
 	var z = coordinates[1];
 
-	var side_length = this.side_length + this.extrudeSettings.bevelSize;
+	var side_length = this.side_length + this.bevelSize;
 	var half_length = side_length/2;
 	var short_distance = side_length * Math.cos(Math.PI/3);
 	
@@ -272,7 +256,7 @@ Board.prototype.verticesToCoordinates = function(location){
 	var num_rows = (4*(big_num-small_num)) + 4;
 
 	// Calculate x-coordinate of vertex
-	var side_length = this.side_length + this.extrudeSettings.bevelSize;
+	var side_length = this.side_length + this.bevelSize;
 	if(z===0 || z===num_rows-1){
 		var num_cols = small_num;
 		var offset = num_cols-1;
@@ -319,52 +303,13 @@ Board.prototype.verticesToCoordinates = function(location){
 };
 
 Board.prototype.buildRoad = function(playerID, location1, location2){
-	var edge = 5 * this.scale;
-	var depth = this.side_length*0.7;
-	var pts = [new THREE.Vector2(0, 0)];
-	pts.push(new THREE.Vector2(edge/2, 0));
-	pts.push(new THREE.Vector2(edge/2, edge));
-	pts.push(new THREE.Vector2(edge/-2, edge));
-	pts.push(new THREE.Vector2(edge/-2, 0));
-	pts.push(new THREE.Vector2(0, 0));
-	var shape = new THREE.Shape(pts);
-	var geometry = new THREE.ExtrudeGeometry(shape,{amount:depth, bevelEnabled:false});
-	var road = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: this.playerColor(playerID), wireframe:false}));
-	var coords1 = this.verticesToCoordinates(location1);
-	var coords2 = this.verticesToCoordinates(location2);
-
-	// Set road angle
-	if(coords1[0]<coords2[0]) {		//If road is going left
-		if(location1[0] % 2 === 0){		//If row # is even
-			var angle = Math.PI * 2 /3;
-		} else {
-			angle = Math.PI /3;
-		}
-	}
-	else if(coords1[0]>coords2[0]) {	//If road is going right
-		if(location1[0] % 2 === 0){
-			angle = Math.PI /3;
-		} else {
-			angle = Math.PI * 2 /3;
-		}
-	} else {							//If road is vertical
-		angle = 0;
-	}
-	road.rotation.set(0, angle, 0);
-
-	// Set road position
-	var x_avg = (coords1[0] + coords2[0])/2;
-	var x_offset = (Math.sin(angle)*depth)/2;
-	var z_avg = (coords1[1] + coords2[1])/2;
-	var z_offset = Math.cos(angle)*depth/2;
-	road.position.set(x_avg - x_offset,0,z_avg - z_offset);
-	this.game.scene.add(road);
-
+	var road = new Road(this, playerID, location1, location2);	
+	this.scene.add(road);
 	return road;
 };
 
 //Draws roads and buildings on board for game in progress
-Board.prototype.populateBoard = function(getRoadDestination, tiles) {
+Board.prototype.populateBoard = function(tiles) {
 	var vertices=[];
 	for(var row=0, num_rows=this.boardVertices.length; row < num_rows; row++) {
 		var vertices_row=[];
@@ -374,17 +319,17 @@ Board.prototype.populateBoard = function(getRoadDestination, tiles) {
 			var owner = this.boardVertices[row][col].owner
 			if(!!settlement_or_city){
 				obj.building = new Building(this, settlement_or_city, owner, [row, col]);
-				this.game.scene.add(obj.building.building);
+				this.scene.add(obj.building.building);
 			}
 			for(var key in this.boardVertices[row][col].connections){
 				if(this.boardVertices[row][col].connections[key] !== null){
 					obj[key] = this.boardVertices[row][col].connections[key];
-					var destination = getRoadDestination.call(this, [row, col], key);
+					var destination = this.getRoadDestination.call(this, [row, col], key);
 					if(!!destination && (row<destination[0] || col<destination[1])){
 						obj.connections = {};
 						owner = this.boardVertices[row][col].connections[key];
 						obj.connections[key] = this.buildRoad(owner, [row, col], destination);
-						this.game.scene.add(obj.connections[key]);
+						this.scene.add(obj.connections[key]);
 					}
 				}
 			}
@@ -417,45 +362,17 @@ Board.prototype.playerColor = function(playerID){
 };
 
 Board.prototype.drawRobber = function(location){
-	var points = [];
-	var prev_width;
-	var side_length = this.side_length;
-	points_length = 35;
-	for ( var i = 0; i < points_length; i++ ) {
-		if(i<3){
-			points.push(new THREE.Vector3( side_length/5, 0, i ) );
-		}
-		else if (i>=3 && i<=4){
-			points.push(new THREE.Vector3( side_length/5 - (i-2), 0, i ) );
-		}
-		else if (i>=5 && i<=20){
-			points.push(new THREE.Vector3( side_length/5 + Math.sin((i-5)/10*Math.PI), 0, i*1.2 ) );
-		}
-		else if (i>=21 && i<30){
-			points.push(new THREE.Vector3( side_length/5 + Math.cos((i-21)/10*Math.PI), 0, i*1.2 ) );
-			prev_width = side_length/5 + Math.cos((i-21)/10*Math.PI);
-		}
-		else if(i>=31 && i<points_length){
-			var percent = (i-30)/(points_length-30);
-			points.push(new THREE.Vector3(prev_width-(prev_width*Math.sin(percent*Math.PI/2)), 0, i));
-		}
-	}
-	points.push(new THREE.Vector3(0, 0, i));
+	var robber = new Robber(this, location);
+	this.scene.add(robber);
 
-	var geometry = new THREE.LatheGeometry( points);
-	var material = new THREE.MeshLambertMaterial( { color: 0x111111 } );
-	var robber = new THREE.Mesh( geometry, material );
-	var coords = this.indicesToCoordinates(location);
-	robber.rotation.set(Math.PI/-2,0,0);
-	robber.position.set(coords[0],0,coords[1]);
-	this.game.scene.add(robber);
+	// For expanded version where there are multiple robbers
 	this.robbers.push(robber);
 
 };
 
 Board.prototype.getTile = function(coords, cb){
 	var x=-coords[0], z=coords[1];
-	var side_length = this.side_length + this.extrudeSettings.bevelSize;
+	var side_length = this.side_length + this.bevelSize;
 	for(var row=0, num_rows=this.tiles.length; row<num_rows; row++){
 		for(var col=0, num_cols=this.tiles[row].length; col<num_cols; col++){
 			var tile_center = this.indicesToCoordinates([row, col]);
@@ -501,9 +418,9 @@ Board.prototype.getVertex = function(coords, cb){
 
 Board.prototype.getRoad = function(coords, cb){
 	var x=-coords[0], z=coords[1];
-	var bevel_width = this.extrudeSettings.bevelSize;
+	var bevel_width = this.bevelSize;
 	var road_width = bevel_width * 2;
-	var road_length = this.side_length + (this.extrudeSettings.bevelSize*2);
+	var road_length = this.side_length + (this.bevelSize*2);
 	var vertex1, vertex2;
 	for(var row=0, num_rows=this.boardVertices.length; !vertex1 && row<num_rows; row++){
 		for(var col=0, num_cols=this.boardVertices[row].length; !vertex1 && col<num_cols; col++){
