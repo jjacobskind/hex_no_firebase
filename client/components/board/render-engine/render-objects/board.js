@@ -256,23 +256,11 @@ Board.prototype.verticesToCoordinates = function(location){
 	var num_rows = (4*(big_num-small_num)) + 4;
 
 	// Calculate x-coordinate of vertex
-	var side_length = this.side_length + this.bevelSize;
-	if(z===0 || z===num_rows-1){
-		var num_cols = small_num;
-		var offset = num_cols-1;
-	}
-	else if(z===num_rows/2 || z===(num_rows/2)-1){
-		num_cols = big_num+1;
-		offset = big_num;
-	} else if(z<=num_rows/2) {
-		num_cols = Math.ceil(z/2)+small_num;
-	} else {
-		num_cols = Math.floor((num_rows-z)/2) + small_num;
-	}
+	var num_cols = this.boardVertices[z].length;
+	var offset = num_cols-1;	//set the number of tile-widths from the center vertex in the row to the edge of the board
 
-	if(!offset){
-		offset = Math.ceil(num_cols/2) + 1;
-	}
+	var side_length = this.side_length + this.bevelSize;
+
 	var middle_radius = (side_length * Math.sin(Math.PI/3));
 	var left_edge = middle_radius*offset;
 	var x_coord = left_edge - (middle_radius * x * 2);
@@ -299,6 +287,7 @@ Board.prototype.verticesToCoordinates = function(location){
 		z_offset += direction * intervals[i%2];
 		i++;
 	}
+
 	return [x_coord, z_offset];
 };
 
