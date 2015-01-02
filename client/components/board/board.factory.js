@@ -35,26 +35,26 @@ angular.module('hexIslandApp')
 
 	      scene.add( renderWater() );
 
-	      game_board = new Game(scene, game);
+	      game_board = new Board(scene, game);
 
 	      controls.addEventListener( 'change', function() {        
-	        var num_rows = game_board.board.tiles.length;
+	        var num_rows = game_board.tiles.length;
 	        var angle = Math.atan(camera.position.x/camera.position.z);
 	        if(camera.position.z>0){
 	          angle+= Math.PI;
 	        }
 
 	        for(var row=0; row<num_rows; row++){
-	          var num_cols = game_board.board.tiles[row].length;
+	          var num_cols = game_board.tiles[row].length;
 	          for(var col=0; col<num_cols; col++){
-	            if(!!game_board.board.tiles[row][col].chit){
-	              game_board.board.tiles[row][col].chit.rotation.set(Math.PI/2, Math.PI, angle);
+	            if(!!game_board.tiles[row][col].chit){
+	              game_board.tiles[row][col].chit.rotation.set(Math.PI/2, Math.PI, angle);
 	            }
 	          }
 	        }
 
-	        for(var i=0, len=game_board.board.ports.length; i<len;i++){
-	          game_board.board.ports[i].rotation.set(Math.PI/2, Math.PI, angle);
+	        for(var i=0, len=game_board.ports.length; i<len;i++){
+	          game_board.ports[i].rotation.set(Math.PI/2, Math.PI, angle);
 	        }
 	      });
 	  }
@@ -103,7 +103,7 @@ angular.module('hexIslandApp')
 	      var click_coordinates = [pos.x, pos.z];
 
 	      if(!!someAction){
-	        var success = someAction.call(game_board.board, click_coordinates, updateEngine);
+	        var success = someAction.call(game_board, click_coordinates, updateEngine);
 	        unset_someAction(success);
 	      }
 	    });
@@ -155,7 +155,7 @@ angular.module('hexIslandApp')
 
 	  return {
 	    buildRoad: function(player, vertex1, vertex2) {
-	      game_board.board.buildRoad(player, vertex1, vertex2);
+	      game_board.buildRoad(player, vertex1, vertex2);
 	    },
 	    drawGame: function(game) {
 	      if(!renderer){
@@ -184,7 +184,7 @@ angular.module('hexIslandApp')
 	          if(updateEngine === engine_factory.buildRoad){
 	            unset_someAction();
 	          } else {
-	            someAction = game_board.board.getRoad;
+	            someAction = game_board.getRoad;
 	            updateEngine = engine_factory.buildRoad;
 	          }
 	          break;
@@ -192,18 +192,18 @@ angular.module('hexIslandApp')
 	          if(updateEngine === engine_factory.buildSettlement){
 	            unset_someAction();
 	          } else {
-	            someAction = game_board.board.getVertex;
+	            someAction = game_board.getVertex;
 	            updateEngine = engine_factory.buildSettlement;
 	          }
 	          break;
 	        case "robber":
-	          someAction = game_board.board.getTile;
+	          someAction = game_board.getTile;
 	          updateEngine = engine_factory.moveRobber;
 	          break;
 	      }
 	    },
 	    moveRobber: function(destination){
-	      game_board.board.moveRobber(destination);
+	      game_board.moveRobber(destination);
 	    },
 	    newBoard: function(small_num, big_num){
 	      renderer.delete;
@@ -214,15 +214,15 @@ angular.module('hexIslandApp')
 	    },
 	    placeSettlement: function(player, location){
 	      var row=location[0], col=location[1];
-	      if(!game_board.board.boardVertices[row][col].building){
-	        var settlement = new Building(game_board.board, "settlement", player, location);
-	        game_board.board.boardVertices[row][col].building=settlement;
+	      if(!game_board.boardVertices[row][col].building){
+	        var settlement = new Building(game_board, "settlement", player, location);
+	        game_board.boardVertices[row][col].building=settlement;
 	        scene.add(settlement.building);
 	      }
 	    },
 	    upgradeSettlementToCity: function(player, location){
 	      var row=location[0], col=location[1];
-	      var vertex_building = game_board.board.boardVertices[row][col].building;
+	      var vertex_building = game_board.boardVertices[row][col].building;
 	      scene.remove(vertex_building.building);
 	      vertex_building.cityShape();
 	      scene.add(vertex_building.building);

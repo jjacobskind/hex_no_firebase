@@ -1,5 +1,6 @@
 var Building = function(board, building_type, owner, location){
 	this.board = board;
+	this.building_depth = 15 * this.board.scale;
 	var coords = this.board.verticesToCoordinates(location);
 	this.x = coords[0];
 	this.z = coords[1];
@@ -8,10 +9,12 @@ var Building = function(board, building_type, owner, location){
 
 	switch(building_type){
 		case "settlement":
-			this.settlementShape();
+			if(!this.settlementGeometry) { this.generateSettlementGeometry(); }
+			this.building = this.settlementGeometry;
 			break;
 		case "city":	
-			this.cityShape();
+			if(!this.cityGeometry) { this.generateCityGeometry(); }
+			this.building = this.cityGeometry;
 			break;
 		default:
 			throw ("Invalid building type!");
@@ -19,7 +22,7 @@ var Building = function(board, building_type, owner, location){
 	}
 };
 
-Building.prototype.settlementShape = function() {
+Building.prototype.generateSettlementGeometry = function() {
 	var scale = this.board.scale;
 	var pts = [];
 	pts.push(new THREE.Vector2(-5 * scale, 0));
@@ -32,11 +35,11 @@ Building.prototype.settlementShape = function() {
 	pts.push(new THREE.Vector2(-5 * scale, 0));
 
 	var shape = new THREE.Shape(pts);
-	var geometry = this.makeGeometry(shape);
-	this.building = geometry;
+
+	Building.prototype.settlementGeometry = this.makeMesh(shape);
 };
 
-Building.prototype.cityShape = function(){
+Building.prototype.cityGeometry = function(){
 	var scale = this.board.scale;
 	var pts = [];
 	pts.push(new THREE.Vector2(-10 * scale, 0));
@@ -49,21 +52,20 @@ Building.prototype.cityShape = function(){
 	pts.push(new THREE.Vector2(-10 * scale, 0));
 
 	var shape = new THREE.Shape(pts);
-	var geometry = this.makeGeometry(shape);
-	this.building = geometry;
+	Building.prototype.cityGeometry = this.makeMesh(shape);
 };
 
-Building.prototype.makeGeometry = function(shape){
-	var depth = this.board.building_depth;
+Building.prototype.makeMesh = function(shape){
+	var depth = this.building_depth;
 	var building_geometry = new THREE.ExtrudeGeometry(shape, {amount:depth,
 																bevelEnabled:false
 																});
 
 	var material = new THREE.MeshLambertMaterial( { color: this.color, wireframe: false } );
 
-	var building = new THREE.Mesh(building_geometry, material);
-	var rotation_angle = (Math.PI/6)*Math.floor(Math.random()*6);
-	building.position.set( this.x, 0, this.z - (depth/2) );
-	// building.rotation.set(0, rotation_angle, 0);
-	return building;
+	var mesh = new THREE.Mesh(building_geometry, material);
+	// var rotation_angle = (Math.PI/6)*Math.floor(Math.random()*6);
+	mesh.position.set( this.x, 0, this.z - (depth/2) );
+	// mesh.rotation.set(0, rotation_angle, 0);
+	return mesh;
 };
