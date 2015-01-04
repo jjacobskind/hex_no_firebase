@@ -88,7 +88,7 @@
 	
 	<div class="buttonHolder">
 		<div class="btnMarquee opacityGradLtR">GAME ID: {{$root.currentGameID}}</div>
- 	  <div ng-click="board_ctrl.rollDice()" id="button" class="tlk">
+ 	  <div ng-click="board_ctrl.rollDice()" id="button" class="tlk gameButton">
  	  	<div class="centerer"></div>
  	  	<img src="assets/svg/diceOpt.svg" height="85px" />
  	  </div>
@@ -96,19 +96,19 @@
 		  <ul id="menu2" class="hudALeft">
 		  	<!--<li ng-click="board_ctrl.setMode('building')">-->
 		  	<li class="dropdown-toggle" dropdown-toggle ng-disabled="disabled">
- 		  	  <div>
-		  	    <a href ng-click=""><img src="assets/svg/hammerOpt.svg" height="45px"></a>
+ 		  	  <div ng-click="" id="buildButton" class='gameButton'>
+		  	    <img src="assets/svg/hammerOpt.svg" height="45px">
 		  	  </div>
 		  	</li>
 
 		  	<li>
-		  	  <div>
-		  	    <a href=""><img src="assets/svg/swapOpt.svg" height="45px"></a>
+		  	  <div class='gameButton'>
+		  	    <img src="assets/svg/swapOpt.svg" height="45px">
 		  	  </div>
 		  	</li>
 		  	<li>
-		  	  <div>
-		  	  <a ng-click="board_ctrl.nextTurn()" href=""><img src="assets/svg/ffwdOpt.svg" height="45px"></a>
+		  	  <div ng-click="board_ctrl.nextTurn()" class='gameButton'>
+			  	  <img src="assets/svg/ffwdOpt.svg" height="45px">
 		  	  </div>
 		  	</li>
 		  </ul>

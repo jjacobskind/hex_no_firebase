@@ -1,6 +1,6 @@
 var Road = function(board, playerID, location1, location2){
 	this.board = board;
-	console.log(location1, location2);
+	
 	// Get coordinates of the two vertices adjacent to the road
 	var coords1 = this.board.verticesToCoordinates(location1);
 	var coords2 = this.board.verticesToCoordinates(location2);

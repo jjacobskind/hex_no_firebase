@@ -23,15 +23,14 @@ var GameEngine = function(game, small_num, large_num) {
     }
 }
 
+// Runs when player tries to pass the turn to the next player
 GameEngine.prototype.advancePlayerTurn = function(playerID) {
-  if(playerID===this.currentPlayer){
-    this.turn++;
-    this.diceRolled = false;
-    this.calculatePlayerTurn();
-    return this.currentPlayer;
-  } else {
-    return null;
-  }
+  var turnValidation = this.validatePlayerTurn(playerID, "advanceTurn");
+  if(turnValidation!==true){ return turnValidation; }
+  this.turn++;
+  this.diceRolled = false;
+  this.calculatePlayerTurn();
+  return this.currentPlayer;
 }
 
 GameEngine.prototype.calculatePlayerTurn = function() {
@@ -58,7 +57,7 @@ GameEngine.prototype.calculatePlayerTurn = function() {
  }
 
  else if (this.turn >= (playerLength * 2)) {
-   this.boardIsSetup = true;
+   this.boardIsSetUp = true;
    this.currentPlayer = currentTurn % playerLength;
  }
 }
@@ -92,12 +91,84 @@ GameEngine.prototype.shuffle = function(array){
    return array;
 };
 
-GameEngine.prototype.roll = function() {
-    var firstRoll = Math.floor(Math.random() * 6) + 1,
-        secondRoll = Math.floor(Math.random() * 6) + 1,
-        sumDice = firstRoll + secondRoll;
-        this.diceNumber = sumDice;
-        return sumDice;
+// Returns a boolean value indicating whether the player is allowed to take this action at this point in the game
+GameEngine.prototype.validatePlayerTurn = function(playerID, action){
+
+  // Conditions that apply to nearly all game actions
+  if (playerID!==this.currentPlayer) { return {err: "It is not currently your turn!"}; }
+  if(this.robberMoveLockdown && action!=="moveRobber") { return {err: "You must move the robber before taking any other action!"}; }
+  if(this.roadCardLockdown && action!=="buildRoad") { return {err: "You must finish building both roads before taking any further action!"}; }
+  
+
+  switch(action){
+    case "roll":
+      if(!this.boardIsSetUp) { return {err: "You may not roll during the board setup phase!"}; }
+      else if(this.diceRolled) { return {err: "You may only roll once per turn!"}; }
+      else { return true; }
+    case "build":
+    case "buildRoad":
+      return (this.diceRolled===true && this.robberMoveLockdown===false);
+    case "trade":
+      return (this.diceRolled===true && this.robberMoveLockdown===false);
+    case "moveRobber":
+      return (this.robberMoveLockdown);
+    case "advanceTurn":
+      var playersSettlements = this.players[playerID].playerQualities.settlements;
+      var playersRoads = this.players[playerID].playerQualities.roadSegments;
+
+      if(this.boardIsSetUp===false) { 
+        if(playersSettlements===playersRoads && playersRoads===Math.ceil((this.turn+1)/this.players.length)) { return true; }
+        else { return {err: "You must build one settlement and one road during the board setup phase!"}; }
+      } else if(!this.diceRolled) { return { err: "You need to roll the dice before ending your turn!" }; }
+      else { return true; }
+    default:
+      return false;
+  }
+};
+
+GameEngine.prototype.rollDice = function(playerID) {
+    var turnValidation = this.validatePlayerTurn(playerID, "roll");
+    if(turnValidation!==true) { return turnValidation; }
+
+    var sumDice = Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6);
+    this.diceNumber = sumDice;
+    this.diceRolled = true;
+
+    if(sumDice!==7) {
+      this.distributeResources(sumDice);
+    } else {
+      // Any players with more than 7 cards must discard half of their hand, player must move the robber and pick a card from an adjacent player
+      // No other actions can take place until all three of these actions have occurred
+      this.robberMoveLockdown = true;
+      this.robResourceCards();
+    }
+    return sumDice;
+};
+
+// Discards half the hand of any player with more than 7 cards
+GameEngine.prototype.robResourceCards = function() {
+  for(var i=0, len=this.players.length; i<len; i++) {
+    if(this.players[i].resourceTotal>7) {
+      var numTotalResources = this.players[i].resourceTotal;
+      var numToRob = Math.floor(numTotalResources/2);
+      this.players[i].resourceTotal-= numToRob;
+
+      // Randomly select resource cards and remove them from player's hand
+      while(numToRob--){
+        var robIndex = Math.ceil(Math.random() * numTotalResources);
+        var sum=0;
+        for(var resource in this.players[i].resources) {
+          sum+=this.players[i].resources[resource];
+          if(sum>=robIndex) {
+            this.players[i].resources[resource]--;
+            numTotalResources--;
+            break;
+          }
+        }
+      }
+
+    }
+  }
 };
 
 GameEngine.prototype.findLongestRoad = function() {
@@ -201,38 +272,37 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
   return -1;
 };
 
-exports.distributeResources = function(sumDice) {
-  var rows = this.gameBoard.boardVertices;
+GameEngine.prototype.distributeResources = function(sumDice) {
+  var boardVertices = this.gameBoard.boardVertices;
   var players = this.players;
-  // if player's dice roll doesn't trigger robber fn
-  if (sumDice !== 7) {
-      var resourceArray = [];
-      var boardSnapShot = {};
-      // loop through the game board
-      for (i = 0; i < rows.length; i++) {
-        for (j = 0; j < rows[i].length; j++) {
-          if (rows[i][j].owner !== null) {
-            var resourcesToDistribute = 1;
-            // check adjacent tiles if they contain a settlement or a city
-            if (rows[i][j].settlementOrCity === 'city'){
-              resourcesToDistribute++;
-            }
-            // distribute resources if player contains settlement on adjacent tiles
-            rows[i][j].adjacent_tiles.forEach(function (item) {
-              if (item.chit === sumDice) {
-                resourceArray.push({resourceCount: resourcesToDistribute, resource: item.resource, player: rows[i][j].owner});
-              }
-            })
-            }
-          }
+
+  var resourceArray = [];
+  var boardSnapShot = {};
+
+  // loop through the board vertices
+  for (var row = 0, num_rows = boardVertices.length; row < num_rows; row++) {
+    for (var col = 0, num_cols = boardVertices[row].length; col<num_cols; col++) {
+      if (boardVertices[row][col].owner !== null) {
+        var resourcesToDistribute = 1;
+        // check adjacent tiles if they contain a settlement or a city
+        if (boardVertices[row][col].settlementOrCity === 'city'){
+          resourcesToDistribute++;
         }
-        if (resourceArray.length !== 0) {
-              resourceArray.forEach(function(item){
-                var resources = players[+item.player].resources;
-                resources[item.resource] = resources[item.resource] + resourcesToDistribute;
-        })
+
+        // build an array of resources that need to be distributed
+        boardVertices[row][col].adjacent_tiles.forEach(function (item) {
+          if (item.chit === sumDice) {
+            resourceArray.push({resourceCount: resourcesToDistribute, resource: item.resource, player: boardVertices[row][col].owner});
+          }
+        });
       }
     }
+  }
+
+  resourceArray.forEach(function(item){
+    var resources = players[+item.player].resources;
+    resources[item.resource] = resources[item.resource] + resourcesToDistribute;
+  })
 };
 
 GameEngine.prototype.tradeResources = function(firstPlayer, firstResource, secondPlayer, secondResource) {
@@ -258,7 +328,7 @@ GameEngine.prototype.buildSettlement = function(playerID, location) {
   else if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
     return {err: "Not enough resources to build a settlement!"};
   }
-  else if (this.boardIsSetup === false && playerID===this.currentPlayer) {
+  else if (this.boardIsSetUp === false && playerID===this.currentPlayer) {
     if ((this.turn < this.players.length) && player.playerQualities.settlements === 0) {
       return this.gameBoard.placeSettlement(player, location);
     }
@@ -289,7 +359,7 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
     (this.turn >= (this.players.length * 2))) {
     return {err: "Not enough resources to build road!"};
   }
-  else if (this.boardIsSetup === false && playerID===this.currentPlayer) {
+  else if (this.boardIsSetUp === false && playerID===this.currentPlayer) {
     if ((this.turn < this.players.length) && player.playerQualities.roadSegments === 0) {
       return this.gameBoard.placeRoad(player,location,direction);
     }

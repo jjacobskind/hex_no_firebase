@@ -10,10 +10,10 @@ angular.module('hexIslandApp')
 			// Receives notification that a building has been constructed
 			socket.on('action:buildingToClient', function(data){
 				var row = data.location[0], col = data.location[1];
-				game.players = data.playerArr;
+				game.players = data.game.players;
 				game.gameBoard.boardVertices[row][col].owner = data.PlayerID;
 				game.gameBoard.boardVertices[row][col].hasSettlementOrCity = data.type;
-				game.longestRoad = data.longestRoad;
+				game.longestRoad = data.game.longestRoad;
 				if(data.type==='settlement'){
 					boardFactory.placeSettlement(data.playerID, data.location);
 				} else {
@@ -23,7 +23,7 @@ angular.module('hexIslandApp')
 
 			// Receives notification that a road has been constructed
 			socket.on('action:roadToClient', function(data){
-				game.players = data.playerArr;
+				game.players = data.game.players;
 
 				// Set player as owner of appropriate road from original location
 				var row = data.location[0], col = data.location[1];
@@ -33,14 +33,14 @@ angular.module('hexIslandApp')
 				row = data.destination[0], col = data.destination[1];
 				game.gameBoard.boardVertices[row][col].connections[data.destinationDirection] = data.PlayerID;
 
-				game.longestRoad = data.longestRoad;
+				game.longestRoad = data.game.longestRoad;
 				boardFactory.buildRoad(data.playerID, data.location, data.destination);
 			});
 
 			// Receives notification that the turn has advanced to the next player
 			socket.on('nextTurnToClient', function(data){
-				$rootScope.currentPlayer = data.currentPlayer;
-				$rootScope.currentTurn = data.currentTurn;
+				$rootScope.currentPlayer = data.game.currentPlayer;
+				$rootScope.currentTurn = data.game.currentTurn;
 				game.diceRolled = false;
 			});
 		};
@@ -145,8 +145,12 @@ angular.module('hexIslandApp')
 					return true;
 				}
 			},
-			updatePlayers: function(playerArray){
-				game.players = playerArray;
+			updateGameProperties: function(data){
+				for(var key in data.game){
+					if(key!=='boardVertices' && key!=='boardTiles') {
+						game[key] = data.game[key];
+					}
+				}
 			},
 			getPlayers: function(){
 				return game.players;
@@ -159,37 +163,28 @@ angular.module('hexIslandApp')
 				return gameID;
 			},
 			startGame: function () {
-				game.areAllPlayersAdded = true;
-				var updates = {};
-				for (var prop in game) {
-					if (prop !== 'gameBoard' && prop !== 'players') {
-						if (game.hasOwnProperty(prop)) {
-							updates[prop] = game[prop];
-						}
-					}
-				}
-				updateFireBase(updates);
+				// game.areAllPlayersAdded = true;
+				// var updates = {};
+				// for (var prop in game) {
+				// 	if (prop !== 'gameBoard' && prop !== 'players') {
+				// 		if (game.hasOwnProperty(prop)) {
+				// 			updates[prop] = game[prop];
+				// 		}
+				// 	}
+				// }
+				// updateFireBase(updates);
 			},
 			startPlay: function() {
-				game.boardIsSetup = true;
-				var updates = {};
-				for (var prop in game) {
-					if (prop !== 'gameBoard' && prop !== 'players') {
-						if (game.hasOwnProperty(prop)) {
-							updates[prop] = game[prop];
-						}
-					}
-				}
-				updateFireBase(updates);
-			},
-			nextTurn: function () {
-				if(game.lockedPhase === false) {
-					var newTurn = game.advancePlayerTurn(authFactory.getPlayerID());
-					if(newTurn!==null){
-						socket.emit('nextTurnToServer');
-						$rootScope.currentPlayer = newTurn;
-					}
-				}
+				// game.boardIsSetup = true;
+				// var updates = {};
+				// for (var prop in game) {
+				// 	if (prop !== 'gameBoard' && prop !== 'players') {
+				// 		if (game.hasOwnProperty(prop)) {
+				// 			updates[prop] = game[prop];
+				// 		}
+				// 	}
+				// }
+				// updateFireBase(updates);
 			}
 		}
 	});

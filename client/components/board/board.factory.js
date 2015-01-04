@@ -8,7 +8,7 @@ angular.module('hexIslandApp')
 	    var canvas_height = $(window).height();
 
 	    // Game view data that needs to be displayed, but not on WebGL canvas
-	    var players;
+	    var players, buildMode = false;
 
 	    var init = function(game) {
 
@@ -148,8 +148,10 @@ angular.module('hexIslandApp')
 
 	  function unset_someAction(success){
 	    if(success){
+    		$(".gameButtonActive").removeClass("gameButtonActive");
 	      someAction = null;
 	      updateEngine = null;
+	      buildMode = false;
 	    }
 	  };
 
@@ -182,18 +184,20 @@ angular.module('hexIslandApp')
 	      switch(action){
 	        case "road":
 	          if(updateEngine === engine_factory.buildRoad){
-	            unset_someAction();
+		        unset_someAction(true);
 	          } else {
+	          	$("#buildButton").addClass("gameButtonActive");
 	            someAction = game_board.getRoad;
 	            updateEngine = engine_factory.buildRoad;
 	          }
 	          break;
 	        case "building":
 	          if(updateEngine === engine_factory.buildSettlement){
-	            unset_someAction();
+	            unset_someAction(true);
 	          } else {
 	            someAction = game_board.getVertex;
 	            updateEngine = engine_factory.buildSettlement;
+	            $("#buildButton").addClass("gameButtonActive");
 	          }
 	          break;
 	        case "robber":

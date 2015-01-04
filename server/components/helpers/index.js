@@ -13,11 +13,29 @@ var getPlayerIndex = function(game, userID) {
 	return -1;
 };
 
-var playerTurnCheck = function(game, userID) {
-	var index = getPlayerIndex(game, userID);
-	if(index !== game.currentPlayer){ return false; }
-	return true;
-};
+exports.advancePlayerTurn = function(userID, gameID) {
+	return Game.findById(gameID).exec()
+		.then(function(game) {
+			var returnObj = { game: {} };
+			if(!game) { return null; }
+			var playerIndex = getPlayerIndex(game, userID);
+			var gameObj = new GameEngine(game.toObject());
+			console.log("HI");
+			var currentPlayer = gameObj.advancePlayerTurn(playerIndex);
+			if(currentPlayer.hasOwnProperty('err')){
+				return null;
+			} else {
+				game.currentPlayer = returnObj.game.currentPlayer = currentPlayer;
+				game.turn = returnObj.game.turn = gameObj.turn;
+				game.diceRolled = returnObj.game.diceRolled = gameObj.diceRolled;
+				game.save();
+
+				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has ended their turn. It is now " + game.players[game.currentPlayer].displayName + "'s turn"});
+				return returnObj;
+			}
+
+		});
+	}
 
 // Validates building construction
 exports.constructBuilding = function(userID, gameID, data){
@@ -38,8 +56,8 @@ exports.constructBuilding = function(userID, gameID, data){
 				game.save();
 				var returnObj = {playerID: playerIndex, 
 								location: data.location, 
-								playerArr: game.players, 
-								longestRoad: game.longestRoad,
+								game: { players: game.players, 
+										longestRoad: game.longestRoad },
 								type: buildObj.type};
 				if(returnObj.type==='settlement'){
 					returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has built a settlement"});
@@ -54,23 +72,22 @@ exports.constructBuilding = function(userID, gameID, data){
 
 // Validates road construction
 exports.constructRoad = function(userID, gameID, data){
-
 	return Game.findById(gameID).exec()
 		.then(function(game){
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
 			var gameObj = new GameEngine(game.toObject());
 			var roadObj = gameObj.buildRoad(playerIndex, data.location, data.locationDirection);
-
 			if(roadObj.hasOwnProperty('err')){
-				return {err: roadObj.err};
+				return null;
 			} else {
-				game.players = gameObj.players;
+				roadObj.game = {};
 				game.gameBoard.boardVertices = gameObj.gameBoard.boardVertices;
-				game.longestRoad = gameObj.longestRoad;
+				game.longestRoad = roadObj.game.longestRoad = gameObj.longestRoad;
+				game.players = roadObj.game.players = gameObj.players;
 				game.save();
+
 				roadObj.playerID = playerIndex; 
-				roadObj.longestRoad = game.longestRoad;
 				roadObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has built a road"});
 				return roadObj;
 			}
@@ -112,29 +129,33 @@ exports.processMessage = function(userID, gameID, data){
 exports.rollDice = function(userID, gameID) {
 	return Game.findById(gameID).exec()
 		.then(function(game) {
-			var returnObj = {};
+			var returnObj = { game: {} };
 			if(!game) { return null; }
-			var isPlayerTurn = playerTurnCheck(game, userID);
-			if(!isPlayerTurn) { 
+			var playerIndex = getPlayerIndex(game, userID);
+			var gameObj = new GameEngine(game.toObject());
+			returnObj.game.diceNumber = gameObj.rollDice(playerIndex);
+
+			if(returnObj.game.diceNumber.hasOwnProperty('err')) { 
 				return null; 
 			} else {
-				var roll = Math.ceil(Math.random()*6) + Math.ceil(Math.random()*6);
-				returnObj.roll = roll;
-				game.diceRolled = true;
+				game.players = gameObj.players;
+				game.robberMoveLockdown = gameObj.robberMoveLockdown;
+				game.diceRolled = gameObj.diceRolled;
+				game.diceNumber = gameObj.diceNumber;
 
-				if(roll===7){
-					returnObj.moveRobber = true;
-					// NEED TO ADD CARD DISCARDING CODE HERE!!!!	
-				} else {
-					gameEngine.distributeResources.call(game, roll);
-					returnObj.moveRobber = false;
-				};
-				
-				returnObj.players = game.players;
 				game.save();
 
-				var index = getPlayerIndex(game, userID);
-				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[index].displayName + " has rolled a " + roll});
+				returnObj.game.players = game.players;
+				returnObj.game.robberMoveLockdown = game.robberMoveLockdown;
+				returnObj.game.diceRolled = game.diceRolled;
+
+
+				// Generate and save chat messsage for dice roll
+				// 'insert' variable changes the word 'a to 'an' when an 8 or 11 is rolled
+				var article = "a ";
+				if(game.diceNumber===8 || game.diceNumber===11) { article = "an "; }
+				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has rolled " + article + game.diceNumber});
+
 				return returnObj;
 			}
 		});

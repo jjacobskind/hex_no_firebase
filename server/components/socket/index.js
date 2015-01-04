@@ -45,6 +45,7 @@ var setUpSocketEvents = function(server) {
 
 		// Receive dice roll requests
 		auth.socketListenerFactory(socket, 'action:rollDice', helpers.rollDice, function(processedData) {
+			if(!processedData) { return null; }
 			var message = processedData.message;
 			delete processedData.message;
 			io.sockets.in(socket.roomName).emit('action:rollResults', processedData);
@@ -74,10 +75,10 @@ var setUpSocketEvents = function(server) {
 		});
 
 		// Receive notification that turn is being advanced
-		auth.socketListenerFactory(socket, 'action:roadToServer', helpers.constructRoad, function(processedData) {
+		auth.socketListenerFactory(socket, 'action:nextTurnToServer', helpers.advancePlayerTurn, function(processedData) {
 			var message = processedData.message;
 			delete processedData.message;
-			socket.broadcast.to(socket.roomName).emit('action:roadToClient', processedData);
+			socket.broadcast.to(socket.roomName).emit('action:nextTurnToClient', processedData);
 			message.then(function(data){
 				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
 			});

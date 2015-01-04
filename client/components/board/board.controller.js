@@ -20,6 +20,7 @@ angular.module('hexIslandApp')
 
 
     $scope.toggleDropdown = function($event) {
+      if($rootScope.lockDown) { return null; }
       $event.preventDefault();
       $event.stopPropagation();
       $scope.status.isopen = !$scope.status.isopen;
@@ -30,7 +31,6 @@ angular.module('hexIslandApp')
         var message = self.textContent.trim();
       }
       if(message.length>0 && self.textContent!==null) {
-        console.log
         socket.emit('chat:messageToServer', {text: message});
         $('<div/>').text(message).prepend($('<em/>').text(authFactory.getPlayerName() +': ')).appendTo($('.textScreen'));
         $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
@@ -39,17 +39,35 @@ angular.module('hexIslandApp')
       $('#typeBox').focus();
     };
 
-    self.nextTurn = engineFactory.nextTurn();
+    self.nextTurn = function () {
+      // Add code to check player move
+      var newTurn = {}; //will be set to output from playerTurnValidation on game
+      if(newTurn.hasOwnProperty("err")){
+        console.log(newTurn.err);
+      } else {
+        socket.emit('action:nextTurnToServer');
+      }
+    }
 
     self.rollDice = function(){
+      if($rootScope.lockDown) { return null; }
       socket.emit('action:rollDice');
     };
 
      // SOCKET LISTENERS
-    socket.on('updatePlayers', function(playerArr){
-      engineFactory.updatePlayers(playerArr);
-      $scope.players = playerArr;
+    socket.on('action:nextTurnToClient', function(data){
+      engineFactory.updateGameProperties(data);
     });
+
+    socket.on('action:rollResults', function(data) {
+      engineFactory.updateGameProperties(data);
+      $rootScope.currentRoll = data.game.diceNumber;
+      if(data.game.robberMoveLockdown && authFactory.getPlayerID()===$scope.currentPlayer) {
+        $rootScope.lockDown = true;
+        boardFactory.set_someAction("robber");
+      }
+    });
+
 
     socket.on('chat:messageToClient', function(message){
       if (message.name === "GAME"){
@@ -61,11 +79,8 @@ angular.module('hexIslandApp')
       $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
     });
 
-    socket.on('action:rollResults', function(data) {
-      engineFactory.updatePlayers(data.players);
-      $rootScope.currentRoll = data.roll;
-      if(data.moveRobber && authFactory.getPlayerID()===$scope.currentPlayer) {
-        boardFactory.set_someAction("robber");
-      }
+    socket.on('updatePlayers', function(data){
+      engineFactory.updateGameProperties(data);
+      $scope.players = data.game.players;
     });
   });
