@@ -5,12 +5,13 @@ var mongoose = require('mongoose'),
 
 var GameSchema = new Schema({
   areAllPlayersAdded: {type: Boolean, require:true, default:false},
-  boardIsSetup: {type: Boolean, require:true, default: false},
+  boardIsSetUp: {type: Boolean, require:true, default: false},
   chatMessages: [{ name: String, text: String }],
   currentPlayer: {type: Number, require:true, default: 0},
   diceNumber: Number,
   diceRolled: {type: Boolean, required: true, default: false},
-  lockedPhase: {type: Boolean, required: true, default: true},
+  roadCardLockdown: {type: Boolean, required: true, default: false},
+  robberMoveLockdown: {type: Boolean, required: true, default: false},
   longestRoad: { type: {
 	  	owner: Number,
 	  	roadLength: Number

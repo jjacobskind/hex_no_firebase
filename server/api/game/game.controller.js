@@ -89,7 +89,7 @@ exports.join = function(req, res) {
         if(userErr) { return handleError(res, userErr); }
         userObj.games.push(game._id);
         userObj.save();
-        socket.to(game._id).emit('updatePlayers', game.players);
+        socket.to(game._id).emit('updatePlayers', {'game': { players: game.players } });
         game = helpers.stripPlayerData(req.user._id, game.toObject());
         return res.json(game);
       });

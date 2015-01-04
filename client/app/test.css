@@ -718,6 +718,14 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#000000', end
   border: 3px solid #000;
 }
 
+.gameButton:hover {
+  cursor:pointer;
+}
+
+.gameButtonActive {
+  background-color: red
+}
+
 .btnMarquee {
   height:50px;
   width:400px;
