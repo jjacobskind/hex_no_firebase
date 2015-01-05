@@ -39,15 +39,7 @@ angular.module('hexIslandApp')
       $('#typeBox').focus();
     };
 
-    self.nextTurn = function () {
-      // Add code to check player move
-      var newTurn = engineFactory.getGame().advancePlayerTurn(authFactory.getPlayerID());
-      if(newTurn.hasOwnProperty("err")){
-        console.log(newTurn.err);
-      } else {
-        socket.emit('action:nextTurnToServer');
-      }
-    }
+    self.nextTurn = engineFactory.nextTurn;
 
     self.rollDice = function(){
       var validation = engineFactory.getGame().validatePlayerTurn(authFactory.getPlayerID(), "roll");
