@@ -20,7 +20,6 @@ exports.advancePlayerTurn = function(userID, gameID) {
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
 			var gameObj = new GameEngine(game.toObject());
-			console.log("HI");
 			var currentPlayer = gameObj.advancePlayerTurn(playerIndex);
 			if(currentPlayer.hasOwnProperty('err')){
 				return null;
@@ -28,6 +27,7 @@ exports.advancePlayerTurn = function(userID, gameID) {
 				game.currentPlayer = returnObj.game.currentPlayer = currentPlayer;
 				game.turn = returnObj.game.turn = gameObj.turn;
 				game.diceRolled = returnObj.game.diceRolled = gameObj.diceRolled;
+				game.boardIsSetUp = returnObj.game.boardIsSetUp = gameObj.boardIsSetUp;
 				game.save();
 
 				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has ended their turn. It is now " + game.players[game.currentPlayer].displayName + "'s turn"});
@@ -129,15 +129,17 @@ exports.processMessage = function(userID, gameID, data){
 exports.rollDice = function(userID, gameID) {
 	return Game.findById(gameID).exec()
 		.then(function(game) {
-			var returnObj = { game: {} };
+			var returnObj = { 'game': {} };
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
 			var gameObj = new GameEngine(game.toObject());
 			returnObj.game.diceNumber = gameObj.rollDice(playerIndex);
 
 			if(returnObj.game.diceNumber.hasOwnProperty('err')) { 
+				console.log(returnObj.game);
 				return null; 
 			} else {
+				console.log("success");
 				game.players = gameObj.players;
 				game.robberMoveLockdown = gameObj.robberMoveLockdown;
 				game.diceRolled = gameObj.diceRolled;
@@ -148,6 +150,7 @@ exports.rollDice = function(userID, gameID) {
 				returnObj.game.players = game.players;
 				returnObj.game.robberMoveLockdown = game.robberMoveLockdown;
 				returnObj.game.diceRolled = game.diceRolled;
+				returnObj.game.boardIsSetUp = game.boardIsSetUp;
 
 
 				// Generate and save chat messsage for dice roll
@@ -155,7 +158,6 @@ exports.rollDice = function(userID, gameID) {
 				var article = "a ";
 				if(game.diceNumber===8 || game.diceNumber===11) { article = "an "; }
 				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has rolled " + article + game.diceNumber});
-
 				return returnObj;
 			}
 		});
