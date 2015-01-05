@@ -249,7 +249,6 @@ Board.prototype.coordinatesToVertices = function(coordinates){
 };
 
 Board.prototype.verticesToCoordinates = function(location){
-	if(!location) { return null; }
 	var z = location[0];
 	var x = location[1];
 	var small_num = this.small_num;

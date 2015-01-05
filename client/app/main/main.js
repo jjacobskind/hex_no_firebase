@@ -18,6 +18,11 @@ angular.module('hexIslandApp')
       	templateUrl: 'app/main/menu_templates/main_menu.html',
       	scope:false
       })
+      .state('main.newGameOptions', {
+        url: '/',
+        templateUrl: 'app/main/menu_templates/main_new_game_options.html',
+        scope:false
+      })
       .state('main.load', {
       	url: 'load_game', 
       	templateUrl: 'app/main/menu_templates/main_load.html',

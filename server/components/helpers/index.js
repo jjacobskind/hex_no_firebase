@@ -39,12 +39,13 @@ exports.advancePlayerTurn = function(userID, gameID) {
 
 // Validates building construction
 exports.constructBuilding = function(userID, gameID, data){
-
 	return Game.findById(gameID).exec()
 		.then(function(game){
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
+
 			var gameObj = new GameEngine(game.toObject());
+
 			var buildObj = gameObj.buildSettlement(playerIndex, data.location);
 
 			if(buildObj.hasOwnProperty('err')){
@@ -139,7 +140,6 @@ exports.rollDice = function(userID, gameID) {
 				console.log(returnObj.game);
 				return null; 
 			} else {
-				console.log("success");
 				game.players = gameObj.players;
 				game.robberMoveLockdown = gameObj.robberMoveLockdown;
 				game.diceRolled = gameObj.diceRolled;

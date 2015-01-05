@@ -44,7 +44,7 @@ var all = {
   facebook: {
     clientID:     process.env.FACEBOOK_ID || 'id',
     clientSecret: process.env.FACEBOOK_SECRET || 'secret',
-    callbackURL:  (process.env.DOMAIN || '') + '/auth/facebook/callback'
+    callbackURL:  /*(process.env.DOMAIN || '') +*/ 'http://192.168.1.11:9000/auth/facebook/callback'
   },
 
   twitter: {

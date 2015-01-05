@@ -626,7 +626,6 @@ GameBoard.prototype.followRoad = function(location, road, player) {
         road.push([row, col]);
         return road;
     } else {
-        // console.log(this.game.getNestedArrayIndex(road, [row, col]));
         road.push([row, col]);
         for(key in vertex.connections){
             if(vertex.connections[key]===player){
