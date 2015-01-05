@@ -59,10 +59,7 @@ GameBoard.prototype.placeSettlement = function(player, location) {
     }
     this.game.findLongestRoad();
 
-    return {'construction':'settlement', 'location':location};
-    // return {'players': JSON.stringify(this.game.players),
-    //         'boardVertices': JSON.stringify(this.boardVertices)
-    // };
+    return {'type':'settlement', 'location':location};
 };
 
 
@@ -94,9 +91,7 @@ GameBoard.prototype.upgradeSettlementToCity = function(player, location) {
         player.constructionPool.cities--;
         player.playerQualities.privatePoints++;
         player.ownedProperties.cities.push({settlementID: location});
-        return {
-            'players': JSON.stringify(this.game.players),
-            'boardVertices': JSON.stringify(this.boardVertices)
+        return { 'type': 'city', 'location': location
         };
     }
 

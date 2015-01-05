@@ -12,7 +12,7 @@ var Building = function(board, building_type, owner, location){
 			if(!this.settlementGeometry) { this.generateSettlementGeometry(); }
 			this.building = this.makeMesh(this.settlementGeometry);
 			break;
-		case "city":	
+		case "city":
 			if(!this.cityGeometry) { this.generateCityGeometry(); }
 			this.building = this.makeMesh(this.cityGeometry);
 			break;
@@ -20,6 +20,11 @@ var Building = function(board, building_type, owner, location){
 			throw ("Invalid building type!");
 			break;
 	}
+};
+
+Building.prototype.upgradeToCity = function() {
+	if(!this.cityGeometry) { this.generateCityGeometry(); }
+	this.building = this.makeMesh(this.cityGeometry);
 };
 
 Building.prototype.generateSettlementGeometry = function() {

@@ -184,7 +184,7 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
 GameEngine.prototype.buildSettlement = function(playerID, location) {
   var player = this.players[playerID];
   if(this.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity === "settlement"){
-    return this.gameBoard.upgradeSettlementToCity(playerID, location);
+    return this.upgradeSettlementToCity(playerID, location);
   }
   else if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
     return {err: "Not enough resources to build a settlement!"};

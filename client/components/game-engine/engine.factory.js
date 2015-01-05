@@ -151,8 +151,7 @@ angular.module('hexIslandApp')
 					return false;
 				} else {
 					boardFactory.moveRobber(destination);
-					// updateFireBase(updates);
-					// dataLink.child('games').child($rootScope.currentGameID).child('chats').push({text:authFactory.getPlayerName() + " has moved the robber", systemMessage:true});
+
 					return true;
 				}
 			},

@@ -228,7 +228,7 @@ angular.module('hexIslandApp')
 	      var row=location[0], col=location[1];
 	      var vertex_building = game_board.boardVertices[row][col].building;
 	      scene.remove(vertex_building.building);
-	      vertex_building.cityShape();
+	      vertex_building.upgradeToCity();
 	      scene.add(vertex_building.building);
 	    },
 	    getGame: function(){
