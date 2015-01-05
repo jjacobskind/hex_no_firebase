@@ -41,7 +41,7 @@ angular.module('hexIslandApp')
 
     self.nextTurn = function () {
       // Add code to check player move
-      var newTurn = {}; //will be set to output from playerTurnValidation on game
+      var newTurn = engineFactory.getGame().advancePlayerTurn(authFactory.getPlayerID());
       if(newTurn.hasOwnProperty("err")){
         console.log(newTurn.err);
       } else {
@@ -50,7 +50,11 @@ angular.module('hexIslandApp')
     }
 
     self.rollDice = function(){
-      if($rootScope.lockDown) { return null; }
+      var validation = engineFactory.getGame().validatePlayerTurn(authFactory.getPlayerID(), "roll");
+      if(validation.hasOwnProperty('err')) {
+        console.log(validation.err);
+        return;
+      }
       socket.emit('action:rollDice');
     };
 

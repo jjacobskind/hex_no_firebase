@@ -149,6 +149,7 @@ angular.module('hexIslandApp')
 				for(var key in data.game){
 					if(key!=='boardVertices' && key!=='boardTiles') {
 						game[key] = data.game[key];
+						console.log(key);
 					}
 				}
 			},
