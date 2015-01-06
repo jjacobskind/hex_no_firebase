@@ -22,8 +22,18 @@ exports.show = function(req, res) {
     if(err) { return handleError(res, err); }
     if(!game) { return res.send(404); }
 
-    game = helpers.stripPlayerData(req.user._id, game);
-    return res.json(game);
+    var playerIndex= -1;
+    var i = game.players.length;
+    var userID = String(req.user._id);
+
+    while(i--) {
+      if(userID===String(game.players[i].userRef)) { playerIndex = i; }
+    }
+
+    var returnObj = JSON.parse(JSON.stringify(game));
+    returnObj = helpers.stripPlayerData(userID, game);
+    returnObj.playerID = playerIndex;
+    return res.json(returnObj);
   });
 };
 
@@ -45,7 +55,10 @@ exports.create = function(req, res) {
       if(userErr) { return handleError(res, err); }
       userObj.games.push(game._id);
       userObj.save();
-      return res.json(201, game);
+
+      var returnObj = JSON.parse(JSON.stringify(game));
+      returnObj.playerID = 0;
+      return res.json(201, returnObj);
     });
 
   });
@@ -64,8 +77,10 @@ exports.join = function(req, res) {
     // Check if user is already in this game. If so, return game
     for(var i =0, len=game.players.length; i<len; i++) {
       if(String(game.players[i].userRef) === String(userID)) {
-        game = helpers.stripPlayerData(req.user._id, game.toObject());
-        return res.json(game);
+        var returnObj = JSON.parse(JSON.stringify(game));
+        returnObj = helpers.stripPlayerData(req.user._id, returnObj);
+        returnObj.playerID = i;
+        return res.json(returnObj);
       }
     }
 
@@ -89,9 +104,14 @@ exports.join = function(req, res) {
         if(userErr) { return handleError(res, userErr); }
         userObj.games.push(game._id);
         userObj.save();
+
+        var returnObj = JSON.parse(JSON.stringify(game));
+        returnObj = helpers.stripPlayerData(req.user._id, returnObj);
+
+        // If necessary, fix this to strip player data, but prob doesn't matter since players only join before anyone has private details
         socket.to(game._id).emit('updatePlayers', {'game': { players: game.players } });
-        game = helpers.stripPlayerData(req.user._id, game.toObject());
-        return res.json(game);
+        returnObj.playerID = returnObj.players.length-1;
+        return res.json(returnObj);
       });
     } else {
       return res.json({err: "This game has been closed off to new players."})

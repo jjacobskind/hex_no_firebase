@@ -50,6 +50,22 @@ angular.module('hexIslandApp')
       socket.emit('action:rollDice');
     };
 
+    var displayChatMessages = function(message){
+      if (message.name === "GAME"){
+        $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(message.text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
+      }
+      else {
+        $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
+      }
+      $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
+    };
+
+    // display chat messages
+    var chatMessages = engineFactory.getChatMessages();
+    for(var i=0, len=chatMessages.length; i<len; i++){
+      displayChatMessages(chatMessages[i]);
+    };
+
      // SOCKET LISTENERS
     socket.on('action:nextTurnToClient', function(data){
       engineFactory.updateGameProperties(data);
@@ -65,15 +81,7 @@ angular.module('hexIslandApp')
     });
 
 
-    socket.on('chat:messageToClient', function(message){
-      if (message.name === "GAME"){
-        $('<div style="color:#bb5e00; font-size:0.8em; font-weight: 900;padding:4px 0 3px 0"/>').text(message.text).prepend($('<b/>').text('')).appendTo($('.textScreen'));
-      }
-      else {
-        $('<div/>').text(message.text).prepend($('<em/>').text(message.name+': ')).appendTo($('.textScreen'));
-      }
-      $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
-    });
+    socket.on('chat:messageToClient', displayChatMessages);
 
     socket.on('updatePlayers', function(data){
       engineFactory.updateGameProperties(data);

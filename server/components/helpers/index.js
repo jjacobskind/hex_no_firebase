@@ -167,7 +167,6 @@ exports.rollDice = function(userID, gameID) {
 exports.stripPlayerData = function(userID, game){
 	for(var i=0, len=game.players.length; i<len; i++){
 	  if(String(game.players[i].userRef) !== String(userID)) {
-	    delete game.players[i].userRef;
 	    delete game.players[i].resources;
 	    delete game.players[i].constructionPool;
 	    delete game.players[i].devCards;
@@ -176,6 +175,8 @@ exports.stripPlayerData = function(userID, game){
 	    delete game.players[i].ownedProperties;
 	    delete game.players[i].rulesValidatedBuildableVertices;
 	  }
+	  delete game.players[i]._id;
+      delete game.players[i].userRef;
 	}
 	return game;
 };
