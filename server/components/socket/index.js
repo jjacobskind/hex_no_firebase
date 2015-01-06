@@ -48,7 +48,8 @@ var setUpSocketEvents = function(server) {
 			if(!processedData) { return null; }
 			var message = processedData.message;
 			delete processedData.message;
-			io.sockets.in(socket.roomName).emit('action:rollResults', processedData);
+
+			customizeBroadcast(socket, 'action:rollResults', true, processedData);
 			message.then(function(data){
 				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
 			});
@@ -58,7 +59,8 @@ var setUpSocketEvents = function(server) {
 		auth.socketListenerFactory(socket, 'action:buildingToServer', helpers.constructBuilding, function(processedData) {
 			var message = processedData.message;
 			delete processedData.message;
-			socket.broadcast.to(socket.roomName).emit('action:buildingToClient', processedData);
+
+			customizeBroadcast(socket, 'action:buildingToClient', false, processedData);
 			message.then(function(data){
 				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
 			});
@@ -68,7 +70,8 @@ var setUpSocketEvents = function(server) {
 		auth.socketListenerFactory(socket, 'action:roadToServer', helpers.constructRoad, function(processedData) {
 			var message = processedData.message;
 			delete processedData.message;
-			socket.broadcast.to(socket.roomName).emit('action:roadToClient', processedData);
+
+			customizeBroadcast(socket, 'action:roadToClient', false, processedData);
 			message.then(function(data){
 				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
 			});
@@ -78,13 +81,39 @@ var setUpSocketEvents = function(server) {
 		auth.socketListenerFactory(socket, 'action:nextTurnToServer', helpers.advancePlayerTurn, function(processedData) {
 			var message = processedData.message;
 			delete processedData.message;
-			socket.broadcast.to(socket.roomName).emit('action:nextTurnToClient', processedData);
+
+			customizeBroadcast(socket, 'action:nextTurnToClient', false, processedData);
 			message.then(function(data){
 				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
 			});
 		});
 
 	});
+};
+
+// Emit data to each client separately so that each only receives the data they're supposed to see
+// Only needs to run when they players array is sent
+var customizeBroadcast = function(socket, eventName, senderGets, data) {
+    if(data.game.hasOwnProperty("players")) {
+		for (var socketId in io.nsps['/'].adapter.rooms[socket.roomName]) {
+			var temp_data = JSON.parse(JSON.stringify(data));	//clone data object
+		    var userID = io.sockets.connected[socketId].userID;
+	    	if(senderGets && userID===socket.userID) { 
+		    	temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
+	    		io.sockets.connected[socketId].emit(eventName, temp_data);
+	    	} else if (userID!==socket.userID) {
+	    		temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
+	    		io.sockets.connected[socketId].emit(eventName, temp_data);
+	    	}
+		}
+    }
+    else {
+    	if(senderGets) { 
+    		io.sockets.in(socket.roomName).emit(eventName, data);
+    	} else {
+    		socket.broadcast.to(socket.roomName).emit(eventName, data);
+    	}
+    }
 };
 
 module.exports = {

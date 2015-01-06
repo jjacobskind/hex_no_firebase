@@ -33,6 +33,7 @@ angular.module('hexIslandApp')
 				row = data.destination[0], col = data.destination[1];
 				game.gameBoard.boardVertices[row][col].connections[data.destinationDirection] = data.PlayerID;
 
+				boardFactory.buildRoad(data.playerID, data.location, data.destination);
 				updateGameProperties(data);
 			});
 
@@ -45,6 +46,10 @@ angular.module('hexIslandApp')
 		};
 		
 		var prepGameOnClient = function(data){
+
+			var playerID = data.playerID;
+			authFactory.setPlayerID(playerID);
+			delete data.playerID;
 
 			// Need to load in game data without losing references to functions on the prototype chain
 			for(var key in data){
@@ -59,19 +64,14 @@ angular.module('hexIslandApp')
 
 			gameID = game._id;
 			$rootScope.currentGameID = gameID;
-			var currentUserID = Auth.getCurrentUser()._id
-			for(var i=0, len=game.players.length; i<len; i++){
-				if(game.players[i].userRef === currentUserID){
-					$rootScope.playerData = game.players[i];
-					authFactory.setPlayerID(i);
-					authFactory.setPlayerName(game.players[i].displayName);
-				}
-			}
+			$rootScope.playerData = game.players[playerID];
+			authFactory.setPlayerName(game.players[playerID].displayName);
+
 			$rootScope.players = game.players;
+			$rootScope.currentRoll = game.diceNumber;
 			boardFactory.drawGame(game);
 			socket.connect(gameID);
 			engineUpdateListeners();
-			var a = new GameEngine(3, 5);
 			$state.go('game');
 		};
 
@@ -104,7 +104,10 @@ angular.module('hexIslandApp')
 			},
 			getGame: function(){
 				return game;
-			}, 
+			},
+			getChatMessages: function() {
+				return game.chatMessages;
+			},
 			buildSettlement: function(location){
 				var settlement_exists = (game.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity === "settlement")
 				var construction = game.buildSettlement(authFactory.getPlayerID(), location);
@@ -122,17 +125,6 @@ angular.module('hexIslandApp')
 					return true;
 				}
 			},
-			// upgradeSettlementToCity: function(location){
-			// 	var updates = game.upgradeSettlementToCity(authFactory.getPlayerID(), location);
-			// 	if(updates.hasOwnProperty("err")){
-			// 		console.log(updates.err);
-			// 	}
-			// 	else {
-			// 		boardFactory.upgradeSettlementToCity(authFactory.getPlayerID(), location);
-			// 		updateFireBase(updates);
-			// 		dataLink.child('games').child($rootScope.currentGameID).child('chats').push({text:authFactory.getPlayerName() + " has built a city", systemMessage:true});
-			// 	}
-			// },
 			buildRoad: function(location, direction){
 				var road = game.buildRoad(authFactory.getPlayerID(), location, direction);
 				if(road.hasOwnProperty("err")){
@@ -187,7 +179,6 @@ angular.module('hexIslandApp')
 				// 		}
 				// 	}
 				// }
-				// updateFireBase(updates);
 			},
 			startPlay: function() {
 				// game.boardIsSetup = true;
@@ -199,7 +190,6 @@ angular.module('hexIslandApp')
 				// 		}
 				// 	}
 				// }
-				// updateFireBase(updates);
 			}
 		}
 	});
