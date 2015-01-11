@@ -77,7 +77,7 @@ Board.prototype.drawBoard = function(tiles) {
 	outer_vertices = outer_vertices.concat(left_vertices);
 	outer_vertices.push([1, 0]);
 
-	for(i=0, len=outer_vertices.length; i<len; i++) {
+	for(var i=0, len=outer_vertices.length; i<len; i++) {
 		var row=outer_vertices[i][0], col = outer_vertices[i][1];
 		if(i<len-1){
 			var row_next= outer_vertices[i+1][0], col_next= outer_vertices[i+1][1];

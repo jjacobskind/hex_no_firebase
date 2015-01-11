@@ -1,4 +1,4 @@
-var redis = require('redis');
+// var redis = require('redis');
 var helpers = require('../helpers');
 var auth = require('./socket.auth');
 
@@ -7,16 +7,16 @@ var io;
 
 
 // "pub" is a redis client that publishes (broadcasts) data to "sub" redis clients on other node instances
-var pub = redis.createClient();
-var sub = redis.createClient();
+// var pub = redis.createClient();
+// var sub = redis.createClient();
 
 // subscribe "sub" to 'global' redis events
-sub.subscribe('global');
+// sub.subscribe('global');
 
 // Listen for messages being published to this server
-sub.on('message', function(channel, msg){
+// sub.on('message', function(channel, msg){
 	// do something with msg
-});
+// });
 
 var setUpSocketEvents = function(server) {
 	io = require('socket.io').listen(server);
