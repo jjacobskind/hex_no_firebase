@@ -23,11 +23,7 @@ angular.module('hexIslandApp')
     self.player_name;
     var testcanvas = document.createElement('canvas');
     self.meets_reqs = !!(testcanvas.getContext("webgl") || testcanvas.getContext("experimental-webgl"));
-
-    if(Auth.isLoggedIn() && $state.current.name==='main.login' && self.meets_reqs){
-        self.player_name = authFactory.getPlayerName();
-        $state.go('main.menu');
-    }
+    self.player_name = authFactory.getPlayerName();
 
     self.previousGameIDs = [];
 

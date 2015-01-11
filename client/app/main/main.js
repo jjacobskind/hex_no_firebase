@@ -6,31 +6,36 @@ angular.module('hexIslandApp')
       .state('main', {
         abstract:true,
         templateUrl: 'app/main/main.html',
-        controller: 'MainCtrl as main_ctrl'
+        controller: 'MainCtrl as main_ctrl',
+        authenticate: true
       })
       .state('main.login', {
-        url: '/',
+        url: '/login',
         templateUrl: 'app/main/menu_templates/main_login.html',
         scope:false
       })
       .state('main.menu', {
-      	url: 'menu',
+      	url: '/',
       	templateUrl: 'app/main/menu_templates/main_menu.html',
-      	scope:false
+      	scope:false,
+        authenticate: true
       })
       .state('main.newGameOptions', {
-        url: '/',
+        url: '/options',
         templateUrl: 'app/main/menu_templates/main_new_game_options.html',
-        scope:false
+        scope:false,
+        authenticate: true
       })
       .state('main.load', {
-      	url: 'load_game', 
+      	url: '/load_game', 
       	templateUrl: 'app/main/menu_templates/main_load.html',
-      	scope:false
+      	scope:false,
+        authenticate: true
       })
       .state('main.join', {
-      	url: 'join_game',
+      	url: '/join_game',
       	templateUrl: 'app/main/menu_templates/main_join.html',
-      	scope: false
+      	scope: false,
+        authenticate: true
       });
   });

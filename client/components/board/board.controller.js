@@ -2,11 +2,6 @@
 
 angular.module('hexIslandApp')
   .controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
-    if(engineFactory.getGame().currentPlayer===undefined){
-      $state.go('main.login');
-      return;
-    }
-    
     var self = this;
     self.setMode = boardFactory.set_someAction;
     self.textContent = "";

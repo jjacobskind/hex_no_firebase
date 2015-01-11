@@ -9,8 +9,8 @@ angular.module('hexIslandApp', [
   'btford.socket-io'
 ])
   .config(function ($stateProvider, $urlRouterProvider, $locationProvider, $httpProvider) {
-    $locationProvider.html5Mode(true);
     $urlRouterProvider.otherwise('/');
+    $locationProvider.html5Mode(true);
     $httpProvider.interceptors.push('authInterceptor');
   })
   .factory('authInterceptor', function ($rootScope, $q, $cookieStore, $location) {
@@ -27,7 +27,7 @@ angular.module('hexIslandApp', [
       // Intercept 401s and redirect you to login
       responseError: function(response) {
         if(response.status === 401) {
-          $location.path('/');
+          $location.path('/login');
           // remove any stale tokens
           $cookieStore.remove('token');
           return $q.reject(response);
@@ -44,7 +44,7 @@ angular.module('hexIslandApp', [
     $rootScope.$on('$stateChangeStart', function (event, next) {
       Auth.isLoggedInAsync(function(loggedIn) {
         if (next.authenticate && !loggedIn) {
-          $location.path('/');
+          $location.path('/login');
         }
       });
     });
