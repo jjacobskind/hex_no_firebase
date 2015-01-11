@@ -2,8 +2,11 @@
 
 angular.module('hexIslandApp')
   .controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
+    if(!engineFactory.getGame()){
+      $state.go('main.menu');
+      return;
+    }
     var self = this;
-    self.setMode = boardFactory.set_someAction;
     self.textContent = "";
     $rootScope.currentTurn = engineFactory.getGame().turn;
     $scope.playerHasRolled = false;
@@ -12,14 +15,27 @@ angular.module('hexIslandApp')
     $scope.currentGameID = $rootScope.currentGameID;
 
     $scope.players = engineFactory.getPlayers();
+    $scope.buildMode = false;
+    self.isopen= false;
 
+    self.toggleBuildMenu = function($event){
+      // Won't do anything if robber needs to be moved or 2-road development card is in play (needs to be adjusted before it will work)
+      //   if($rootScope.lockDown) { return null; }
 
-    $scope.toggleDropdown = function($event) {
-      if($rootScope.lockDown) { return null; }
       $event.preventDefault();
       $event.stopPropagation();
-      $scope.status.isopen = !$scope.status.isopen;
+
+      if(boardFactory.getBuildMode()){
+        boardFactory.exitBuildMode();
+        self.isopen = false;
+      } else {
+        $event.preventDefault();
+        $event.stopPropagation();
+        self.isopen = !self.isopen;
+      }
     };
+
+    self.setMode = boardFactory.set_someAction;
 
     self.submitChat = function(){
       if(self.textContent!==null){

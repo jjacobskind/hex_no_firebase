@@ -189,6 +189,7 @@ angular.module('hexIslandApp')
 	          	$("#buildButton").addClass("gameButtonActive");
 	            someAction = game_board.getRoad;
 	            updateEngine = engine_factory.buildRoad;
+	            buildMode = true;
 	          }
 	          break;
 	        case "building":
@@ -198,6 +199,7 @@ angular.module('hexIslandApp')
 	            someAction = game_board.getVertex;
 	            updateEngine = engine_factory.buildSettlement;
 	            $("#buildButton").addClass("gameButtonActive");
+	            buildMode = true;
 	          }
 	          break;
 	        case "robber":
@@ -230,6 +232,12 @@ angular.module('hexIslandApp')
 	      scene.remove(vertex_building.building);
 	      vertex_building.upgradeToCity();
 	      scene.add(vertex_building.building);
+	    },
+	    exitBuildMode: function(){
+	    	unset_someAction(updateEngine !== angular.element(document.body).injector().get('engineFactory').moveRobber);
+	    },
+	    getBuildMode: function(){
+	    	return buildMode;
 	    },
 	    getGame: function(){
 	      return game_board;
