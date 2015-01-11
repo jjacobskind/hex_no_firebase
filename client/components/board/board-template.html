@@ -92,11 +92,10 @@
  	  	<div class="centerer"></div>
  	  	<img src="assets/svg/diceOpt.svg" height="85px" />
  	  </div>
- 	  <div class="buttonWrapper" dropdown is-open="status.isopen">
+ 	  <div class="buttonWrapper" dropdown is-open="board_ctrl.isopen">
 		  <ul id="menu2" class="hudALeft">
-		  	<!--<li ng-click="board_ctrl.setMode('building')">-->
-		  	<li class="dropdown-toggle" dropdown-toggle ng-disabled="disabled">
- 		  	  <div ng-click="" id="buildButton" class='gameButton'>
+		  	<li>
+ 		  	  <div ng-click="board_ctrl.toggleBuildMenu($event)" id="buildButton" class='gameButton'>
 		  	    <img src="assets/svg/hammerOpt.svg" height="45px">
 		  	  </div>
 		  	</li>
