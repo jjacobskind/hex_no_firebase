@@ -93,7 +93,29 @@ exports.constructRoad = function(userID, gameID, data){
 				return roadObj;
 			}
 		});
+};
 
+// Validates robber movements
+exports.moveRobber = function(userID, gameID, data){
+	return Game.findById(gameID).exec()
+		.then(function(game){
+			if(!game) { return null; }
+			var playerIndex = getPlayerIndex(game, userID);
+			var gameObj = new GameEngine(game.toObject());
+			var returnObj = gameObj.moveRobber(playerIndex, data.destination, data.origin);
+			if(returnObj.hasOwnProperty('err')){
+				return null;
+			} else {
+				game.gameBoard.boardTiles = gameObj.gameBoard.boardTiles;
+				game.robberMoveLockdown = gameObj.robberMoveLockdown;
+				game.save();
+				if(!!data.origin) { var determiner = 'a'; }
+				else { var determiner = 'the'; }
+				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has moved " + determiner + " robber"});
+				returnObj.game = { robberMoveLockdown: game.robberMoveLockdown };
+				return returnObj;
+			}
+		});
 };
 
 // Validate incoming chat message, save, and format it to be sent out to clients
@@ -137,7 +159,6 @@ exports.rollDice = function(userID, gameID) {
 			returnObj.game.diceNumber = gameObj.rollDice(playerIndex);
 
 			if(returnObj.game.diceNumber.hasOwnProperty('err')) { 
-				console.log(returnObj.game);
 				return null; 
 			} else {
 				game.players = gameObj.players;

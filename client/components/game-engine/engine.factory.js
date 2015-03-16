@@ -43,6 +43,14 @@ angular.module('hexIslandApp')
 				$rootScope.currentTurn = data.game.currentTurn;
 				game.diceRolled = false;
 			});
+
+			socket.on('action:moveRobberToClient', function(data){
+				var origin = data.origin, destination = data.destination;
+				game.gameBoard.boardTiles[origin[0]][origin[1]].robber = false;
+				game.gameBoard.boardTiles[destination[0]][destination[1]].robber = true;
+				updateGameProperties(data);
+				boardFactory.moveRobber(destination, origin);
+			});
 		};
 		
 		var prepGameOnClient = function(data){
@@ -136,14 +144,14 @@ angular.module('hexIslandApp')
 					return true;
 				}
 			},
-			moveRobber: function(destination){
-				var updates = game.gameBoard.moveRobber.call(game.gameBoard, destination);
-				if(updates.hasOwnProperty("err")){
-					console.log(updates.err);
+			moveRobber: function(destination, origin){
+				var moveInfo = game.moveRobber(authFactory.getPlayerID(), destination, origin);
+				if(moveInfo.hasOwnProperty("err")){
+					console.log(moveInfo.err);
 					return false;
 				} else {
-					boardFactory.moveRobber(destination);
-
+					boardFactory.moveRobber(destination, origin);
+					socket.emit('action:moveRobberToServer', { destination: destination, origin: origin });
 					return true;
 				}
 			},
@@ -159,16 +167,23 @@ angular.module('hexIslandApp')
 				return gameID;
 			},
 			nextTurn: function () {
-			    // Add code to check player move
-			    var newTurn = game.advancePlayerTurn(authFactory.getPlayerID());
-			    if(newTurn.hasOwnProperty("console")){
-			    	err.log(newTurn.err);
-			    } else {
-			    	$rootScope.currentTurn = game.turn;
-			      	$rootScope.currentPlayer = game.currentPlayer;
-			        socket.emit('action:nextTurnToServer');
-			    }
-		    },
+		    // Add code to check player move
+		    var newTurn = game.advancePlayerTurn(authFactory.getPlayerID());
+		    if(newTurn.hasOwnProperty("console")){
+		    	err.log(newTurn.err);
+		    } else {
+		    	$rootScope.currentTurn = game.turn;
+	      	$rootScope.currentPlayer = game.currentPlayer;
+	      	boardFactory.exitBuildMode();
+	        socket.emit('action:nextTurnToServer');
+		    }
+	    },
+	    robberLockdownStatus: function() {
+	    	return game.robberMoveLockdown;
+	    },
+	    isRobberOnTile: function(indices) {
+	    	return game.gameBoard.boardTiles[indices[0]][indices[1]].robber;
+	    },
 			startGame: function () {
 				// game.areAllPlayersAdded = true;
 				// var updates = {};

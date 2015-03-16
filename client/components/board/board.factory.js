@@ -2,7 +2,7 @@
 
 angular.module('hexIslandApp')
 	.factory('boardFactory', function($state, $rootScope, authFactory) {
-	    var camera, scene, renderer, controls, light, water, game_board, someAction, updateEngine;
+	    var camera, scene, renderer, controls, light, water, game_board, someAction;
 
 	    var canvas_width = $(window).width();
 	    var canvas_height = $(window).height();
@@ -62,6 +62,7 @@ angular.module('hexIslandApp')
 	  var animate = function() {
 	      light.position.copy(camera.position);
 	      water.material.uniforms.time.value += 1.0 / 30.0;
+
 	      renderer.render( scene, camera );
 
 	    setTimeout(function(){
@@ -103,7 +104,7 @@ angular.module('hexIslandApp')
 	      var click_coordinates = [pos.x, pos.z];
 
 	      if(!!someAction){
-	        var success = someAction.call(game_board, click_coordinates, updateEngine);
+	        var success = someAction(click_coordinates);
 	        unset_someAction(success);
 	      }
 	    });
@@ -147,10 +148,9 @@ angular.module('hexIslandApp')
 	  });
 
 	  function unset_someAction(success){
-	    if(success){
+	    if(success === true){
     		$(".gameButtonActive").removeClass("gameButtonActive");
 	      someAction = null;
-	      updateEngine = null;
 	      buildMode = false;
 	    }
 	  };
@@ -170,7 +170,7 @@ angular.module('hexIslandApp')
 	        $("#board_container").height(canvas_height);
 	        $("#board_container").prepend( renderer.domElement );
 	        $("#board-canvas").addClass( 'full' );
-	        $("board-canvas").focus();
+	        $("#board-canvas").focus();
 
 	        $('#board-canvas').on('mousewheel', function(e) {
 	            e.preventDefault();
@@ -183,33 +183,56 @@ angular.module('hexIslandApp')
 	      var engine_factory = angular.element(document.body).injector().get('engineFactory');
 	      switch(action){
 	        case "road":
-	          if(updateEngine === engine_factory.buildRoad){
+	          if(!!buildMode){
 		        unset_someAction(true);
 	          } else {
 	          	$("#buildButton").addClass("gameButtonActive");
-	            someAction = game_board.getRoad;
-	            updateEngine = engine_factory.buildRoad;
 	            buildMode = true;
+	            someAction = function(coords) {
+	            	var road = game_board.getRoad(coords);
+		            if(!!road) { return engine_factory.buildRoad(road.start_vertex, road.direction); }
+		            return false;
+		          }
 	          }
 	          break;
 	        case "building":
-	          if(updateEngine === engine_factory.buildSettlement){
+	          if(!!buildMode){
 	            unset_someAction(true);
 	          } else {
-	            someAction = game_board.getVertex;
-	            updateEngine = engine_factory.buildSettlement;
 	            $("#buildButton").addClass("gameButtonActive");
 	            buildMode = true;
+	            someAction = function(coords) {
+	            	var indices = game_board.getVertex(coords);
+		            if(!!indices) { return engine_factory.buildSettlement(indices); }
+		            return false;
+	            }
 	          }
 	          break;
 	        case "robber":
-	          someAction = game_board.getTile;
-	          updateEngine = engine_factory.moveRobber;
+	          var parentFunc = someAction = function(coords1) {
+	          	var indices1 = game_board.getTile(coords1);
+		        	if(game_board.robbers.length==1) {
+		          	if (!!indices1) { return engine_factory.moveRobber(indices1); }
+		          	return false;
+		          } else if (!!indices1 && engine_factory.isRobberOnTile(indices1)) {
+		          	someAction = function(coords2) {
+		          		var indices2 = game_board.getTile(coords2);
+		          		if (!!indices2) { 
+		          			var move_result = engine_factory.moveRobber(indices2, indices1);
+		          			//reset two-click action so user can choose to select another robber instead
+		          			if(!move_result) { someAction = parentFunc; }
+		          			return move_result;
+		          		}
+			          	return false;
+		          	}
+		          }
+	          	return false;
+        		}
 	          break;
 	      }
 	    },
-	    moveRobber: function(destination){
-	      game_board.moveRobber(destination);
+	    moveRobber: function(destination, origin){
+	      game_board.moveRobber(destination, origin);
 	    },
 	    newBoard: function(small_num, big_num){
 	      renderer.delete;
@@ -234,7 +257,8 @@ angular.module('hexIslandApp')
 	      scene.add(vertex_building.building);
 	    },
 	    exitBuildMode: function(){
-	    	unset_someAction(updateEngine !== angular.element(document.body).injector().get('engineFactory').moveRobber);
+	    	var engine_factory = angular.element(document.body).injector().get('engineFactory');
+	    	unset_someAction(!engine_factory.robberLockdownStatus());
 	    },
 	    getBuildMode: function(){
 	    	return buildMode;

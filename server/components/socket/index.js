@@ -88,24 +88,35 @@ var setUpSocketEvents = function(server) {
 			});
 		});
 
+		// Receive notification that turn is being advanced
+		auth.socketListenerFactory(socket, 'action:moveRobberToServer', helpers.moveRobber, function(processedData) {
+			var message = processedData.message;
+			delete processedData.message;
+
+			customizeBroadcast(socket, 'action:moveRobberToClient', false, processedData);
+			message.then(function(data){
+				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
+			});
+		});
+
 	});
 };
 
 // Emit data to each client separately so that each only receives the data they're supposed to see
-// Only needs to run when they players array is sent
+// Only needs to run when the players array is sent
 var customizeBroadcast = function(socket, eventName, senderGets, data) {
-    if(data.game.hasOwnProperty("players")) {
-		for (var socketId in io.nsps['/'].adapter.rooms[socket.roomName]) {
-			var temp_data = JSON.parse(JSON.stringify(data));	//clone data object
-		    var userID = io.sockets.connected[socketId].userID;
-	    	if(senderGets && userID===socket.userID) { 
-		    	temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
-	    		io.sockets.connected[socketId].emit(eventName, temp_data);
-	    	} else if (userID!==socket.userID) {
-	    		temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
-	    		io.sockets.connected[socketId].emit(eventName, temp_data);
-	    	}
-		}
+    if(!!data.game && data.game.hasOwnProperty("players")) {
+			for (var socketId in io.nsps['/'].adapter.rooms[socket.roomName]) {
+				var temp_data = JSON.parse(JSON.stringify(data));	//clone data object
+			    var userID = io.sockets.connected[socketId].userID;
+		    	if(senderGets && userID===socket.userID) { 
+			    	temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
+		    		io.sockets.connected[socketId].emit(eventName, temp_data);
+		    	} else if (userID!==socket.userID) {
+		    		temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
+		    		io.sockets.connected[socketId].emit(eventName, temp_data);
+		    	}
+			}
     }
     else {
     	if(senderGets) { 

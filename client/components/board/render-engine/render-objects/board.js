@@ -359,7 +359,7 @@ Board.prototype.drawRobber = function(location){
 
 };
 
-Board.prototype.getTile = function(coords, cb){
+Board.prototype.getTile = function(coords, cb, indices1){
 	var x=-coords[0], z=coords[1];
 	var side_length = this.side_length + this.bevelSize;
 	for(var row=0, num_rows=this.tiles.length; row<num_rows; row++){
@@ -378,8 +378,7 @@ Board.prototype.getTile = function(coords, cb){
 				}
 
 				if(dist_from_center < horizontal_range*2){
-					var success = cb([row, col]);
-					return success;
+					return [row, col];
 				}
 			}
 		}
@@ -397,15 +396,14 @@ Board.prototype.getVertex = function(coords, cb){
 			var z_diff = vertex_coords[1]-z;
 			var distance_from_vertex = Math.sqrt(Math.pow(x_diff, 2) + Math.pow(z_diff, 2));
 			if(distance_from_vertex<radius){
-				var success = cb([row, col]);
-				return success;
+				return [row, col];
 			}
 		}
 	}
 	return false;
 };
 
-Board.prototype.getRoad = function(coords, cb){
+Board.prototype.getRoad = function(coords){
 	var x=-coords[0], z=coords[1];
 	var bevel_width = this.bevelSize;
 	var road_width = bevel_width * 2;
@@ -435,8 +433,7 @@ Board.prototype.getRoad = function(coords, cb){
 		var coords2 = this.verticesToCoordinates(vertex2);
 		if(x<=(coords1[0] + bevel_width) && x>=(coords1[0] - bevel_width) 		//checking if x click coordinate lies within road width
 		&& (z<=coords1[1] && z>=coords2[1]))	{							//vertex1 z-coordinate will always be higher than vertex2 due to top-down iteration through vertices
-			var success = cb(vertex1, "vertical");
-			return success;
+			return { start_vertex: vertex1, direction: "vertical" };
 		}
 	}
 
@@ -468,18 +465,25 @@ Board.prototype.getRoad = function(coords, cb){
 			case 0:
 				direction = "left";
 		}
-		success = cb(vertex1, direction);
-		return success;
+		return { start_vertex: vertex1, direction: direction };
 	}
 	return false;
 };
 
 // Function to move the robber
 // Refactor this later on to provide for multiple robbers,using a two-click process to select the correct robber and select the destination
-Board.prototype.moveRobber = function(destination){
-	var tile_center = this.indicesToCoordinates(destination);
+Board.prototype.moveRobber = function(destination, origin){
+	var destination_tile_center = this.indicesToCoordinates(destination);
 	if(this.robbers.length===1){
-		this.robbers[0].position.set(tile_center[0], 0, tile_center[1]);
+		this.robbers[0].position.set(destination_tile_center[0], 0, destination_tile_center[1]);
+	} else {
+		var origin_tile_center = this.indicesToCoordinates(origin);
+		for(var i=0, len=this.robbers.length; i<len; i++) {
+			if(this.robbers[i].position.x=== origin_tile_center[0] && this.robbers[i].position.z=== origin_tile_center[1]) {
+				this.robbers[i].position.set(destination_tile_center[0], 0, destination_tile_center[1]);
+				return null;
+			}
+		}
 	}
 	return null;
 };
