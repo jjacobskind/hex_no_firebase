@@ -2,7 +2,7 @@
 
 angular.module('hexIslandApp')
   .controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
-    if(!engineFactory.getGame()){
+    if(!engineFactory.getGame().gameBoard.game.players){
       $state.go('main.menu');
       return;
     }
@@ -42,7 +42,7 @@ angular.module('hexIslandApp')
         var message = self.textContent.trim();
       }
       if(message.length>0 && self.textContent!==null) {
-        socket.emit('chat:messageToServer', {text: message});
+        socket.emit('chatMessageToServer', {text: message});
         $('<div/>').text(message).prepend($('<em/>').text(authFactory.getPlayerName() +': ')).appendTo($('.textScreen'));
         $('.textScreen')[0].scrollTop = $('.textScreen')[0].scrollHeight;
       }
@@ -58,7 +58,7 @@ angular.module('hexIslandApp')
         console.log(validation.err);
         return;
       }
-      socket.emit('action:rollDice');
+      socket.emit('rollDiceToServer');
     };
 
     var displayChatMessages = function(message){
@@ -78,11 +78,11 @@ angular.module('hexIslandApp')
     };
 
      // SOCKET LISTENERS
-    socket.on('action:nextTurnToClient', function(data){
+    socket.on('nextTurnToClient', function(data){
       engineFactory.updateGameProperties(data);
     });
 
-    socket.on('action:rollResults', function(data) {
+    socket.on('rollDiceToClient', function(data) {
       engineFactory.updateGameProperties(data);
       $rootScope.currentRoll = data.game.diceNumber;
       if(data.game.robberMoveLockdown && authFactory.getPlayerID()===$scope.currentPlayer) {
@@ -92,8 +92,9 @@ angular.module('hexIslandApp')
     });
 
 
-    socket.on('chat:messageToClient', displayChatMessages);
+    socket.on('chatMessageToClient', displayChatMessages);
 
+    // adds new players to game
     socket.on('updatePlayers', function(data){
       engineFactory.updateGameProperties(data);
       $scope.players = data.game.players;

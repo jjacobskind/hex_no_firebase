@@ -13,91 +13,163 @@ var getPlayerIndex = function(game, userID) {
 	return -1;
 };
 
-exports.advancePlayerTurn = function(userID, gameID) {
+var updateGame = function(userID, gameID, actionData) {
+	var action = actionData.functionName;
+	var functionParameters = actionData.functionParameters;
+
 	return Game.findById(gameID).exec()
 		.then(function(game) {
-			var returnObj = { game: {} };
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
 			var gameObj = new GameEngine(game.toObject());
-			var currentPlayer = gameObj.advancePlayerTurn(playerIndex);
-			if(currentPlayer.hasOwnProperty('err')){
+
+			functionParameters.unshift(playerIndex);
+			var results = gameObj[action].apply(gameObj, functionParameters);
+
+			if(results.hasOwnProperty('err')){
 				return null;
 			} else {
-				game.currentPlayer = returnObj.game.currentPlayer = currentPlayer;
-				game.turn = returnObj.game.turn = gameObj.turn;
-				game.diceRolled = returnObj.game.diceRolled = gameObj.diceRolled;
-				game.boardIsSetUp = returnObj.game.boardIsSetUp = gameObj.boardIsSetUp;
-				game.save();
-
-				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has ended their turn. It is now " + game.players[game.currentPlayer].displayName + "'s turn"});
+				var starterObj = { playerID: playerIndex, playerName: game.players[playerIndex].displayName, game: {} }
+				var returnObj = prepareReturnData(starterObj, actionData.properties, gameObj, results);
+				updateAndSaveGame(game, gameObj, actionData.properties[0].game);
 				return returnObj;
 			}
-
 		});
+};
+
+// build data object to be broadcasted to clients
+var prepareReturnData = function(returnObj, properties, gameObj, results) {
+	properties.forEach(function(key) {
+		if(key.hasOwnProperty('game')) {
+			key.game.forEach(function(game_key) {
+				returnObj.game[game_key] = gameObj[game_key];
+				injectSpecialData(game_key, returnObj, gameObj);
+			});
+		} else {
+			returnObj[key] = results[key] || gameObj[key];
+		}
+	});
+	return returnObj;
+};
+
+// adds extra data to return object in special cases
+var injectSpecialData = function(key, returnObj, gameObj) {
+	switch(key) {
+		case 'currentPlayer':
+			returnObj.game.currentPlayerName = gameObj.players[gameObj.currentPlayer].displayName;
+			break;
 	}
+};
+
+// persists game changes
+var updateAndSaveGame = function(game, gameObj, properties) {
+	game.players = gameObj.players;
+	game.gameBoard.boardVertices = gameObj.gameBoard.boardVertices;
+	game.gameBoard.boardTiles = gameObj.gameBoard.boardTiles;
+
+	properties.forEach(function(key) {
+		game[key] = gameObj[key];
+	});
+
+	game.save();
+};
+
+exports.advancePlayerTurn = function(userID, gameID) {
+
+		var actionData = {
+			functionName: 'advancePlayerTurn',
+			functionParameters: [],
+			properties: [ 
+				{ game: ['currentPlayer', 'turn', 'diceRolled', 'boardIsSetUp'] }
+			]
+		};
+
+		return updateGame(userID, gameID, actionData)
+			.then(function(returnData) {
+				returnData.message = exports.processChatMessage("GAME", gameID, {text: returnData.playerName + " has ended their turn. It is now " + returnData.game.currentPlayerName + "'s turn"});
+
+				delete returnData.playerName;
+				delete returnData.game.currentPlayerName;	
+				return returnData;
+			});
+	};
 
 // Validates building construction
 exports.constructBuilding = function(userID, gameID, data){
-	return Game.findById(gameID).exec()
-		.then(function(game){
-			if(!game) { return null; }
-			var playerIndex = getPlayerIndex(game, userID);
 
-			var gameObj = new GameEngine(game.toObject());
+	var actionData = {
+		functionName: 'buildSettlement',
+		functionParameters: [data.location],
+		properties: [ 
+			{ game: ['players', 'longestRoad'] },
+			'location',
+			'type'
+		]
+	};
 
-			var buildObj = gameObj.buildSettlement(playerIndex, data.location);
-
-			if(buildObj.hasOwnProperty('err')){
-				return {err: buildObj.err};
+	return updateGame(userID, gameID, actionData)
+		.then(function(returnData) {
+			if(returnData.type==='settlement'){
+				returnData.message = exports.processChatMessage("GAME", gameID, {text: returnData.playerName + " has built a settlement"});
 			} else {
-				game.players = gameObj.players;
-				game.gameBoard.boardVertices = gameObj.gameBoard.boardVertices;
-				game.longestRoad = gameObj.longestRoad;
-				game.save();
-				var returnObj = {playerID: playerIndex, 
-								location: data.location, 
-								game: { players: game.players, 
-										longestRoad: game.longestRoad },
-								type: buildObj.type};
-				if(returnObj.type==='settlement'){
-					returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has built a settlement"});
-				} else {
-					returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has upgraded a settlement to a city"});
-				}
-				return returnObj;
+				returnData.message = exports.processChatMessage("GAME", gameID, {text: returnData.playerName + " has upgraded a settlement to a city"});
 			}
-		});
 
+			delete returnData.playerName;
+			return returnData;
+		});
 };
 
 // Validates road construction
 exports.constructRoad = function(userID, gameID, data){
-	return Game.findById(gameID).exec()
-		.then(function(game){
-			if(!game) { return null; }
-			var playerIndex = getPlayerIndex(game, userID);
-			var gameObj = new GameEngine(game.toObject());
-			var roadObj = gameObj.buildRoad(playerIndex, data.location, data.locationDirection);
-			if(roadObj.hasOwnProperty('err')){
-				return null;
-			} else {
-				roadObj.game = {};
-				game.gameBoard.boardVertices = gameObj.gameBoard.boardVertices;
-				game.longestRoad = roadObj.game.longestRoad = gameObj.longestRoad;
-				game.players = roadObj.game.players = gameObj.players;
-				game.save();
 
-				roadObj.playerID = playerIndex; 
-				roadObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has built a road"});
-				return roadObj;
-			}
+	var actionData = {
+		functionName: 'buildRoad',
+		functionParameters: [data.location, data.locationDirection],
+		properties: [ 
+			{ game: ['players', 'longestRoad'] },
+			'location',
+			'type',
+			'location',
+			'locationDirection',
+			'destination',
+			'destinationDirection'
+		]
+	};
+
+	return updateGame(userID, gameID, actionData)
+		.then(function(returnData) {
+			returnData.message = exports.processChatMessage("GAME", gameID, { text: returnData.playerName + " has built a road" });
+			delete returnData.playerName;
+			return returnData;
 		});
+};
 
+// Validates robber movements
+exports.moveRobber = function(userID, gameID, data){
+
+	var actionData = {
+		functionName: 'moveRobber',
+		functionParameters: [data.destination, data.origin],
+		properties: [ 
+			{ game: ['robberMoveLockdown'] },
+			'destination',
+			'origin'
+		]
+	};
+
+	return updateGame(userID, gameID, actionData)
+		.then(function(returnData) {
+			if(!!data.origin) { var determiner = 'a'; }
+			else { var determiner = 'the'; }
+			returnData.message = exports.processChatMessage("GAME", gameID, {text: returnData.playerName + " has moved " + determiner + " robber"});
+			delete returnData.playerName;
+			return returnData;
+		});
 };
 
 // Validate incoming chat message, save, and format it to be sent out to clients
-exports.processMessage = function(userID, gameID, data){
+exports.processChatMessage = function(userID, gameID, data){
 	var messageObj = null;
 	var message = data.text.trim();
 	if(message.length>160){ 
@@ -110,56 +182,39 @@ exports.processMessage = function(userID, gameID, data){
 	return Game.findById(gameID).exec()
 		.then(function(game){
 			if(!game) { return null; }
-			var index = getPlayerIndex(game, userID);
+			var playerIndex = getPlayerIndex(game, userID);
 
 			// Only save/send chat message if player is in the game or if it was sent by the game
-			if(userID==="GAME"){
-				messageObj = {name: userID, text: message};
+			if(userID==="GAME" || playerIndex !== -1){
+				if(userID==="GAME") { messageObj = { name: userID, text: message }; }
+				else { messageObj = {name: game.players[playerIndex].displayName, text: message}; }
+				
 				game.chatMessages.push(messageObj);
 				game.save();
 			}
-			else if(index!==-1){
-				messageObj = {name: game.players[index].displayName, text: message};
-				game.chatMessages.push(messageObj);
-				game.save();
-			}
+
 			return messageObj;
 		});
 };
 
 exports.rollDice = function(userID, gameID) {
-	return Game.findById(gameID).exec()
-		.then(function(game) {
-			var returnObj = { 'game': {} };
-			if(!game) { return null; }
-			var playerIndex = getPlayerIndex(game, userID);
-			var gameObj = new GameEngine(game.toObject());
-			returnObj.game.diceNumber = gameObj.rollDice(playerIndex);
 
-			if(returnObj.game.diceNumber.hasOwnProperty('err')) { 
-				console.log(returnObj.game);
-				return null; 
-			} else {
-				game.players = gameObj.players;
-				game.robberMoveLockdown = gameObj.robberMoveLockdown;
-				game.diceRolled = gameObj.diceRolled;
-				game.diceNumber = gameObj.diceNumber;
+	var actionData = {
+		functionName: 'rollDice',
+		functionParameters: [],
+		properties: [ 
+			{ game: ['players', 'robberMoveLockdown', 'diceRolled', 'diceNumber'] }
+		]
+	};
 
-				game.save();
-
-				returnObj.game.players = game.players;
-				returnObj.game.robberMoveLockdown = game.robberMoveLockdown;
-				returnObj.game.diceRolled = game.diceRolled;
-				returnObj.game.boardIsSetUp = game.boardIsSetUp;
-
-
-				// Generate and save chat messsage for dice roll
-				// 'insert' variable changes the word 'a to 'an' when an 8 or 11 is rolled
-				var article = "a ";
-				if(game.diceNumber===8 || game.diceNumber===11) { article = "an "; }
-				returnObj.message = exports.processMessage("GAME", gameID, {text:game.players[playerIndex].displayName + " has rolled " + article + game.diceNumber});
-				return returnObj;
-			}
+	return updateGame(userID, gameID, actionData)
+		.then(function(returnData) {
+			var roll = returnData.game.diceNumber;
+			var determiner = "a ";
+			if(roll===8 || roll===11) { determiner = "an "; }
+			returnData.message = exports.processChatMessage("GAME", gameID, {text: returnData.playerName + " has rolled " + determiner + roll });
+			delete returnData.playerName;
+			return returnData;
 		});
 };
 

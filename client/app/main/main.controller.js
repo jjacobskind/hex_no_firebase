@@ -27,7 +27,18 @@ angular.module('hexIslandApp')
 
     self.previousGameIDs = [];
 
-    self.createNewGame = engineFactory.newGame;
+    self.createNewGame = function(small_num, big_num) {
+        $http.post('/api/games', {small_num:small_num, big_num:big_num})
+            .success(engineFactory.prepGameOnClient);
+    };
+
+    self.joinGame = function(gameID){
+        $http.post('/api/games/join', {gameID: gameID})
+            .success(function(data){
+                if(data.hasOwnProperty('err')) { console.log(data.err); } 
+                else { engineFactory.prepGameOnClient(data); }
+            });
+    };
 
     self.loadUsersGameList = function(){
         $http.get('/api/users/' + Auth.getCurrentUser()._id + '/games')
@@ -37,8 +48,10 @@ angular.module('hexIslandApp')
             });
     }
 
-    self.loadPreviousGame = engineFactory.restorePreviousGame;
-    self.joinGameID = engineFactory.joinGame;
+    self.loadPreviousGame = function(gameID) {
+        $http.get('/api/games/' + gameID)
+            .success(engineFactory.prepGameOnClient);
+    };
 
     self.loginOauth = function(provider) {
         $window.location.href = '/auth/' + provider;

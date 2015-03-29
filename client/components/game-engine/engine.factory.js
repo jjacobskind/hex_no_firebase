@@ -8,7 +8,7 @@ angular.module('hexIslandApp')
 		var engineUpdateListeners = function() {
 
 			// Receives notification that a building has been constructed
-			socket.on('action:buildingToClient', function(data){
+			socket.on('buildingToClient', function(data){
 				var row = data.location[0], col = data.location[1];
 
 				game.gameBoard.boardVertices[row][col].owner = data.PlayerID;
@@ -22,7 +22,7 @@ angular.module('hexIslandApp')
 			});
 
 			// Receives notification that a road has been constructed
-			socket.on('action:roadToClient', function(data){
+			socket.on('roadToClient', function(data){
 				game.players = data.game.players;
 
 				// Set player as owner of appropriate road from original location
@@ -43,36 +43,14 @@ angular.module('hexIslandApp')
 				$rootScope.currentTurn = data.game.currentTurn;
 				game.diceRolled = false;
 			});
-		};
-		
-		var prepGameOnClient = function(data){
 
-			var playerID = data.playerID;
-			authFactory.setPlayerID(playerID);
-			delete data.playerID;
-
-			// Need to load in game data without losing references to functions on the prototype chain
-			for(var key in data){
-				if(key==='gameBoard'){
-					for(var key2 in data.gameBoard){
-						game[key][key2] = data[key][key2];
-					}
-				} else {
-					game[key] = data[key];
-				}
-			}
-
-			gameID = game._id;
-			$rootScope.currentGameID = gameID;
-			$rootScope.playerData = game.players[playerID];
-			authFactory.setPlayerName(game.players[playerID].displayName);
-
-			$rootScope.players = game.players;
-			$rootScope.currentRoll = game.diceNumber;
-			boardFactory.drawGame(game);
-			socket.connect(gameID);
-			engineUpdateListeners();
-			$state.go('game');
+			socket.on('moveRobberToClient', function(data){
+				var origin = data.origin, destination = data.destination;
+				game.gameBoard.boardTiles[origin[0]][origin[1]].robber = false;
+				game.gameBoard.boardTiles[destination[0]][destination[1]].robber = true;
+				updateGameProperties(data);
+				boardFactory.moveRobber(destination, origin);
+			});
 		};
 
 		var updateGameProperties = function(data){
@@ -88,19 +66,34 @@ angular.module('hexIslandApp')
 		};
 
 		return {
-			newGame: function(small_num, big_num){
-				$http.post('/api/games', {small_num:small_num, big_num:big_num})
-					.success(prepGameOnClient);
-			},
-			joinGame: function(gameID){
-				$http.post('/api/games/join', {gameID: gameID})
-					.success(function(data){
-						if(data.hasOwnProperty('err')){
-							console.log(data.err);
-						} else {
-							prepGameOnClient(data);
+			prepGameOnClient: function(data){
+
+				var playerID = data.playerID;
+				authFactory.setPlayerID(playerID);
+				delete data.playerID;
+
+				// Need to load in game data without losing references to functions on the prototype chain
+				for(var key in data){
+					if(key==='gameBoard'){
+						for(var key2 in data.gameBoard){
+							game[key][key2] = data[key][key2];
 						}
-					});
+					} else {
+						game[key] = data[key];
+					}
+				}
+
+				gameID = game._id;
+				$rootScope.currentGameID = gameID;
+				$rootScope.playerData = game.players[playerID];
+				authFactory.setPlayerName(game.players[playerID].displayName);
+
+				$rootScope.players = game.players;
+				$rootScope.currentRoll = game.diceNumber;
+				boardFactory.drawGame(game);
+				socket.connect(gameID);
+				engineUpdateListeners();
+				$state.go('game');
 			},
 			getGame: function(){
 				return game;
@@ -121,7 +114,7 @@ angular.module('hexIslandApp')
 					} else {
 						boardFactory.upgradeSettlementToCity(authFactory.getPlayerID(), location);
 					}
-					socket.emit('action:buildingToServer', construction);
+					socket.emit('buildingToServer', construction);
 					return true;
 				}
 			},
@@ -132,18 +125,18 @@ angular.module('hexIslandApp')
 					return false;
 				} else {
 					boardFactory.buildRoad(authFactory.getPlayerID(), road.location, road.destination);
-					socket.emit('action:roadToServer', road);
+					socket.emit('roadToServer', road);
 					return true;
 				}
 			},
-			moveRobber: function(destination){
-				var updates = game.gameBoard.moveRobber.call(game.gameBoard, destination);
-				if(updates.hasOwnProperty("err")){
-					console.log(updates.err);
+			moveRobber: function(destination, origin){
+				var moveInfo = game.moveRobber(authFactory.getPlayerID(), destination, origin);
+				if(moveInfo.hasOwnProperty("err")){
+					console.log(moveInfo.err);
 					return false;
 				} else {
-					boardFactory.moveRobber(destination);
-
+					boardFactory.moveRobber(destination, origin);
+					socket.emit('moveRobberToServer', { destination: destination, origin: origin });
 					return true;
 				}
 			},
@@ -151,24 +144,27 @@ angular.module('hexIslandApp')
 			getPlayers: function(){
 				return game.players;
 			},
-			restorePreviousGame: function(gameID) {
-				$http.get('/api/games/' + gameID)
-					.success(prepGameOnClient);
-			},
 			getGameID: function(){
 				return gameID;
 			},
 			nextTurn: function () {
-			    // Add code to check player move
-			    var newTurn = game.advancePlayerTurn(authFactory.getPlayerID());
-			    if(newTurn.hasOwnProperty("console")){
-			    	err.log(newTurn.err);
-			    } else {
-			    	$rootScope.currentTurn = game.turn;
-			      	$rootScope.currentPlayer = game.currentPlayer;
-			        socket.emit('action:nextTurnToServer');
-			    }
-		    },
+		    // Add code to check player move
+		    var newTurn = game.advancePlayerTurn(authFactory.getPlayerID());
+		    if(newTurn.hasOwnProperty("console")){
+		    	err.log(newTurn.err);
+		    } else {
+		    	$rootScope.currentTurn = game.turn;
+	      	$rootScope.currentPlayer = game.currentPlayer;
+	      	boardFactory.exitBuildMode();
+	        socket.emit('nextTurnToServer');
+		    }
+	    },
+	    robberLockdownStatus: function() {
+	    	return game.robberMoveLockdown;
+	    },
+	    isRobberOnTile: function(indices) {
+	    	return game.gameBoard.boardTiles[indices[0]][indices[1]].robber;
+	    },
 			startGame: function () {
 				// game.areAllPlayersAdded = true;
 				// var updates = {};

@@ -380,22 +380,29 @@ GameBoard.prototype.getDevelopmentCard = function(player) {
     currentGameData.child('players').set(JSON.stringify(game.players));
 };
 
-GameBoard.prototype.moveRobber = function(location) {
-    var old_location;
-    for(var row=0, num_rows=this.boardTiles.length; row<num_rows; row++){
-        for(var col=0, num_cols=this.boardTiles[row].length; col<num_cols; col++){
-            if(this.boardTiles[row][col].robber===true){
-                old_location = [row, col];
+GameBoard.prototype.moveRobber = function(destination, origin) {
+    // origin will only be undefined when there is only one robber
+    if(!origin) {
+        for(var row=0, num_rows=this.boardTiles.length; row<num_rows; row++){
+            for(var col=0, num_cols=this.boardTiles[row].length; col<num_cols; col++){
+                if(this.boardTiles[row][col].robber===true){
+                    origin = [row, col];
+                }
             }
         }
     }
 
-    if(old_location!==location){
-        var old_row = old_location[0], old_col=old_location[1];
-        this.boardTiles[old_row][old_col].robber=false;
-        this.boardTiles[location[0]][location[1]].robber=true;
-        return {'boardTiles': JSON.stringify(this.boardTiles)};
+    var old_row = origin[0], old_col=origin[1];
+    var new_row = destination[0], new_col=destination[1];
+    if(old_row===new_row && old_col===new_col){
+        return { err: "You must move the Robber to another tile!" };
+    }
+    else if(this.boardTiles[new_row][new_col].robber === true) {
+        return { err: "Another robber already occupies that tile!" };
     } else {
-        return {err: "You must move the Robber to another tile!"};
+        this.boardTiles[old_row][old_col].robber=false;
+        this.boardTiles[new_row][new_col].robber=true;
+        this.game.robberMoveLockdown = false;
+        return { destination: destination, origin: origin };
     }
 };

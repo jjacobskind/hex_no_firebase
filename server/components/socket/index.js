@@ -35,89 +35,81 @@ var setUpSocketEvents = function(server) {
 		socket.roomName = String(socket.handshake.query.roomNumber);
 		socket.join(socket.roomName);
 
-
 		//*************SOCKET LISTENING EVENT HANDLERS ************/
+		// Event listeners are set up automatically, based on the objects in the eventListeners array
+		// To add an event, provide a descriptive name as the key, and the helper function as the value
+		// If sending player should get a response, add the event name in function shouldSenderGetResponse
 
-		// Receive chat messages
-		auth.socketListenerFactory(socket, 'chat:messageToServer', helpers.processMessage, function(processedData) {
-			socket.broadcast.to(socket.roomName).emit('chat:messageToClient', processedData);	// sends to all clients in room except sender
-		});
+		var eventListeners = [
+			{ chatMessage: helpers.processChatMessage },
+			{ rollDice: helpers.rollDice },
+			{ building: helpers.constructBuilding },
+			{ road: helpers.constructRoad },
+			{ nextTurn: helpers.advancePlayerTurn },
+			{ moveRobber: helpers.moveRobber }
+		];
 
-		// Receive dice roll requests
-		auth.socketListenerFactory(socket, 'action:rollDice', helpers.rollDice, function(processedData) {
-			if(!processedData) { return null; }
-			var message = processedData.message;
-			delete processedData.message;
+		var shouldSenderGetResponse = function(event) {
+			switch(event) {
+				case 	'rollDice' || 
+							'other true events should go here':
+					return true;
+				default:
+					return false;
+			}
+		};
 
-			customizeBroadcast(socket, 'action:rollResults', true, processedData);
-			message.then(function(data){
-				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
+		// initializes event listeners
+		eventListeners.forEach(function(item) {
+			var key = Object.keys(item)[0];
+			var helper = item[key];
+			var senderGetsResponse = shouldSenderGetResponse(key);
+			auth.socketListenerFactory(socket, key + 'ToServer', helper, function(processedData) {
+				updateClients(socket, key + 'ToClient', senderGetsResponse, processedData);
 			});
 		});
 
-		// Receive request to build a settlement or city
-		auth.socketListenerFactory(socket, 'action:buildingToServer', helpers.constructBuilding, function(processedData) {
-			var message = processedData.message;
-			delete processedData.message;
-
-			customizeBroadcast(socket, 'action:buildingToClient', false, processedData);
-			message.then(function(data){
-				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
-			});
-		});
-
-		// Receive request to build a road
-		auth.socketListenerFactory(socket, 'action:roadToServer', helpers.constructRoad, function(processedData) {
-			var message = processedData.message;
-			delete processedData.message;
-
-			customizeBroadcast(socket, 'action:roadToClient', false, processedData);
-			message.then(function(data){
-				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
-			});
-		});
-
-		// Receive notification that turn is being advanced
-		auth.socketListenerFactory(socket, 'action:nextTurnToServer', helpers.advancePlayerTurn, function(processedData) {
-			var message = processedData.message;
-			delete processedData.message;
-
-			customizeBroadcast(socket, 'action:nextTurnToClient', false, processedData);
-			message.then(function(data){
-				io.sockets.in(socket.roomName).emit('chat:messageToClient', data);
-			});
-		});
 
 	});
 };
 
 // Emit data to each client separately so that each only receives the data they're supposed to see
-// Only needs to run when they players array is sent
-var customizeBroadcast = function(socket, eventName, senderGets, data) {
-    if(data.game.hasOwnProperty("players")) {
+// Only needs to run when the players array is sent
+var updateClients = function(socket, eventName, senderGetsResponse, data) {
+	if(!data) { return null; }
+
+	if(!!data.message) {
+		sendActionMessage(socket, data.message);
+		delete data.message;
+	}
+
+  if(!!data.game && data.game.hasOwnProperty("players")) {
 		for (var socketId in io.nsps['/'].adapter.rooms[socket.roomName]) {
 			var temp_data = JSON.parse(JSON.stringify(data));	//clone data object
-		    var userID = io.sockets.connected[socketId].userID;
-	    	if(senderGets && userID===socket.userID) { 
-		    	temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
-	    		io.sockets.connected[socketId].emit(eventName, temp_data);
-	    	} else if (userID!==socket.userID) {
-	    		temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
-	    		io.sockets.connected[socketId].emit(eventName, temp_data);
-	    	}
-		}
-    }
-    else {
-    	if(senderGets) { 
-    		io.sockets.in(socket.roomName).emit(eventName, data);
-    	} else {
-    		socket.broadcast.to(socket.roomName).emit(eventName, data);
+	    var userID = io.sockets.connected[socketId].userID;
+    	if((senderGetsResponse && userID===socket.userID) || (userID!==socket.userID)) { 
+	    	temp_data.game = helpers.stripPlayerData(userID, temp_data.game);
+    		io.sockets.connected[socketId].emit(eventName, temp_data);
     	}
-    }
+		}
+  }
+  else {
+  	if(senderGetsResponse) { 
+  		io.sockets.in(socket.roomName).emit(eventName, data);
+  	} else {
+  		socket.broadcast.to(socket.roomName).emit(eventName, data);
+  	}
+  }
+};
+
+// sends chat messages to clients
+var sendActionMessage = function(socket, message) {
+	message.then(function(data){
+		io.sockets.in(socket.roomName).emit('chatMessageToClient', data);
+	});
 };
 
 module.exports = {
 	setUpSocketEvents: setUpSocketEvents,
 	socket: {}
 };
-
