@@ -185,7 +185,7 @@ angular.module('hexIslandApp')
 	        case "road":
 	          if(!!buildMode){
 		        unset_someAction(true);
-	          } else {
+	          } else if (!engine_factory.robberLockdownStatus()) {
 	          	$("#buildButton").addClass("gameButtonActive");
 	            buildMode = true;
 	            someAction = function(coords) {
@@ -198,7 +198,7 @@ angular.module('hexIslandApp')
 	        case "building":
 	          if(!!buildMode){
 	            unset_someAction(true);
-	          } else {
+	          } else if (!engine_factory.robberLockdownStatus()) {
 	            $("#buildButton").addClass("gameButtonActive");
 	            buildMode = true;
 	            someAction = function(coords) {
