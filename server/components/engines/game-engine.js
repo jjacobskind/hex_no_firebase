@@ -219,9 +219,14 @@ GameEngine.prototype.validatePlayerTurn = function(playerID, action){
       if(!this.boardIsSetUp) { return {err: "You may not roll during the board setup phase!"}; }
       else if(this.diceRolled) { return {err: "You may only roll once per turn!"}; }
       else { return true; }
-    case "buildRoad" || "build":
-      if(this.diceRolled !== true && this.boardIsSetUp) { return { err: "You must roll the dice before you can build!" }; }
-      else { return true; }
+    case "buildRoad":
+      if(!this.diceRolled && this.boardIsSetUp) { return { err: "You must roll the dice before you can build!" }; }
+      else if (this.boardIsSetUp === false && Math.floor(this.turn / this.players.length) !== this.players[playerID].playerQualities.roadSegments) { return { err: "You may only build one road per turn during the board setup phase!" }; }
+      return true;
+    case "build":
+      if(!this.diceRolled && this.boardIsSetUp) { return { err: "You must roll the dice before you can build!" }; }
+      else if (this.boardIsSetUp === false && Math.floor(this.turn / this.players.length) !== this.players[playerID].playerQualities.settlements) { return { err: "You may only build one settlement per turn during the board setup phase!" }; }
+      return true;
     case "trade":
       return (this.diceRolled===true && this.robberMoveLockdown===false);
     case "moveRobber":
@@ -230,7 +235,7 @@ GameEngine.prototype.validatePlayerTurn = function(playerID, action){
       var playersSettlements = this.players[playerID].playerQualities.settlements;
       var playersRoads = this.players[playerID].playerQualities.roadSegments;
 
-      if(this.boardIsSetUp===false) { 
+      if(this.boardIsSetUp===false) {
         if(playersSettlements===playersRoads && playersRoads===Math.ceil((this.turn+1)/this.players.length)) { return true; }
         else { return {err: "You must build one settlement and one road during the board setup phase!"}; }
       } else if(!this.diceRolled) { return { err: "You need to roll the dice before ending your turn!" }; }
@@ -342,38 +347,25 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
   return -1;
 };
 
-
 GameEngine.prototype.buildSettlement = function(playerID, location) {
+  var isPlayerTurn = this.validatePlayerTurn(playerID, 'build');
+  if(isPlayerTurn !== true) { return isPlayerTurn; }
+
   var player = this.players[playerID];
   if(String(this.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity) === "settlement"){
     return this.upgradeSettlementToCity(playerID, location);
   }
   else if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
-    return {err: "Not enough resources to build a settlement!"};
+    return { err: "Not enough resources to build a settlement!" };
   }
-  else if (this.boardIsSetUp === false && playerID===this.currentPlayer) {
-    if ((this.turn < this.players.length) && player.playerQualities.settlements === 0) {
-      return this.gameBoard.placeSettlement(player, location);
-    }
-    else if ((this.turn >= this.players.length) && this.turn < (this.players.length * 2) && player.playerQualities.settlements === 1) {
-      
-      var itemsToDistribute = this.gameBoard.boardVertices[location[0]][location[1]].adjacent_tiles;
-      
-      itemsToDistribute.forEach(function(item){
-        player.resources[item.resource]++
-      });
 
-      return this.gameBoard.placeSettlement(player, location);
-    }
-    else {
-      return {err: "Cannot build another settlement during setup!"};
-    }
+  if(Math.floor(this.turn / this.players.length) === 1) {
+    var itemsToDistribute = this.gameBoard.boardVertices[location[0]][location[1]].adjacent_tiles;
+    itemsToDistribute.forEach(function(item){
+      player.resources[item.resource]++
+    });
   }
-  else if(playerID===this.currentPlayer){
-    return this.gameBoard.placeSettlement(player, location);
-  } else {
-    return {err: "It is not currently your turn!"};
-  }
+  return this.gameBoard.placeSettlement(player, location);
 };
 
 GameEngine.prototype.buildRoad = function(playerID, location, direction) {
@@ -383,22 +375,9 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
   var player = this.players[playerID];
   if ((player.resources.lumber < 1 || player.resources.brick < 1) &&
     (this.turn >= (this.players.length * 2))) {
-    return {err: "Not enough resources to build road!"};
+    return {err: "You don't have enough resources to build a road!"};
   }
-  else if (this.boardIsSetUp === false) {
-    if (this.turn < this.players.length && player.playerQualities.roadSegments === 0) {
-      return this.gameBoard.placeRoad(player,location,direction);
-    }
-    else if (this.turn >= this.players.length && player.playerQualities.roadSegments === 1) {
-      return this.gameBoard.placeRoad(player,location,direction);
-    }
-    else {
-      return {err: "Cannot build another road during setup!"};
-    }
-  }
-  else {
-    return this.gameBoard.placeRoad(player,location,direction);
-  }
+  return this.gameBoard.placeRoad(player,location,direction);
 };
 
 GameEngine.prototype.upgradeSettlementToCity = function(playerID, location) {
@@ -406,13 +385,10 @@ GameEngine.prototype.upgradeSettlementToCity = function(playerID, location) {
   if (player.resources.grain < 2 || player.resources.ore < 3) {
     return {err: 'Not enough resources to build city!'};
   }
-  else if(playerID===this.currentPlayer) {
-    player.resources.grain -= 2;
-    player.resources.ore -= 3;
-    return this.gameBoard.upgradeSettlementToCity(player, location); 
-  } else {
-    return {err: "It is not currently your turn!"};
-  }
+
+  player.resources.grain -= 2;
+  player.resources.ore -= 3;
+  return this.gameBoard.upgradeSettlementToCity(player, location);
 };
 
 GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
@@ -423,8 +399,6 @@ GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
     return isPlayerTurn;
   }
 };
-
-
 
 
 exports.GameEngine = GameEngine;
