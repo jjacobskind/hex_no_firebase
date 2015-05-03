@@ -39,11 +39,14 @@ angular.module('hexIslandApp', [
     };
   })
 
-  .run(function ($rootScope, $location, $state, Auth) {
+  .run(function ($cookieStore, $rootScope, $location, $state, Auth) {
     // Redirect to login if route requires auth and you're not logged in
     $rootScope.$on('$stateChangeStart', function (event, next) {
       Auth.isLoggedInAsync(function(loggedIn) {
         if (next.authenticate && !loggedIn) {
+          if ($location.url() != '/login') {
+            $cookieStore.put('returnUrl', $location.url());
+          }
           $location.path('/login');
         }
       });

@@ -93,7 +93,6 @@ angular.module('hexIslandApp')
 				boardFactory.drawGame(game);
 				socket.connect(gameID);
 				engineUpdateListeners();
-				$state.go('game');
 			},
 			getGame: function(){
 				return game;
@@ -110,7 +109,7 @@ angular.module('hexIslandApp')
 				}
 				else {
 					if(!settlement_exists){
-						boardFactory.placeSettlement(authFactory.getPlayerID(), location);		
+						boardFactory.placeSettlement(authFactory.getPlayerID(), location);
 					} else {
 						boardFactory.upgradeSettlementToCity(authFactory.getPlayerID(), location);
 					}

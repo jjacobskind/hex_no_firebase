@@ -39,18 +39,27 @@ exports.show = function(req, res) {
 
 // Creates a new game in the DB.
 exports.create = function(req, res) {
-  var small_num = req.body.small_num;
-  var big_num = req.body.big_num;
-  var new_game = new GameObject(null, small_num, big_num);
+  switch(req.body.game_size) {
+    case 'regular':
+      var new_game = new GameObject(null, 3, 5);
+      break;
+    case 'expanded':
+      var new_game = new GameObject(null, 3, 6);
+      break;
+    case 'party':
+      var new_game = new GameObject(null, 8, 10);
+      break;
+  }
+
   new_game.gameBoard = {
     boardTiles: new_game.gameBoard.boardTiles,
     boardVertices: new_game.gameBoard.boardVertices
   };
   new_game.players.push(new PlayerObject(null, req.user, new_game.players.length));
-  
+
   Game.create(new_game, function(err, game) {
     if(err) { return handleError(res, err); }
-    
+
     User.findById(req.user._id, function(userErr, userObj){
       if(userErr) { return handleError(res, err); }
       userObj.games.push(game._id);

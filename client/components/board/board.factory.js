@@ -37,7 +37,7 @@ angular.module('hexIslandApp')
 
 	      game_board = new Board(scene, game);
 
-	      controls.addEventListener( 'change', function() {        
+	      controls.addEventListener( 'change', function() {
 	        var num_rows = game_board.tiles.length;
 	        var angle = Math.atan(camera.position.x/camera.position.z);
 	        if(camera.position.z>0){
