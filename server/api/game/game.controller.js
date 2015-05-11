@@ -7,6 +7,7 @@ var GameObject = require('../../components/engines/game-engine').GameEngine;
 var BoardObject = require('../../components/engines/game-engine').BoardEngine;
 var PlayerObject = require('../../components/engines/player-engine').Player;
 var helpers = require('../../components/helpers');
+var GameFabricator = require('../../components/game-fabricator');
 
 // Get list of games
 exports.index = function(req, res) {
@@ -31,7 +32,7 @@ exports.show = function(req, res) {
     }
 
     var returnObj = JSON.parse(JSON.stringify(game));
-    returnObj = helpers.stripPlayerData(userID, game);
+    returnObj = helpers.stripPlayerData(userID, returnObj);
     returnObj.playerID = playerIndex;
     return res.json(returnObj);
   });
@@ -39,7 +40,7 @@ exports.show = function(req, res) {
 
 // Creates a new game in the DB.
 exports.create = function(req, res) {
-  switch(req.body.game_size) {
+  switch(req.body.size) {
     case 'regular':
       var new_game = new GameObject(null, 3, 5);
       break;
@@ -127,6 +128,17 @@ exports.join = function(req, res) {
     }
   })
 
+};
+
+exports.test = function(req, res) {
+  if(process.env.HEX_ENV === 'development') {
+    GameFabricator(req)
+      .then(function(returnObj) {
+        return res.json(200, returnObj);
+      });
+  } else {
+    return res.send(403, 'Test route not available in production');
+  }
 };
 
 // Updates an existing game in the DB.

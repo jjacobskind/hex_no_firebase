@@ -93,6 +93,7 @@ angular.module('hexIslandApp')
 				boardFactory.drawGame(game);
 				socket.connect(gameID);
 				engineUpdateListeners();
+				return game;
 			},
 			getGame: function(){
 				return game;

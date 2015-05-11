@@ -2,13 +2,19 @@
 
 angular.module('hexIslandApp')
   .config(function ($stateProvider) {
+
+    var testQueryParameters = [
+      'task',
+      'size',
+      'players',
+    ];
+
     $stateProvider
       .state('game', {
-        url: '/game/:id?task',
+        url: '/game/:id?' + testQueryParameters.join('&'),
         templateUrl: 'app/game/game.html',
         controller: 'GameCtrl as game_ctrl',
         authenticate: true,
-        params: { task: null, game_size: null },
         resolve: {
 
           game: function($http, $stateParams) {
@@ -16,8 +22,10 @@ angular.module('hexIslandApp')
             var task = $stateParams.task;
 
             var callback = function(game) {
-              $stateParams.id = game.data._id;
-              $stateParams.task = null;
+              if($stateParams.id !== 'test') {
+                for(var key in $stateParams) { $stateParams[key] = null; }
+                $stateParams.id = game.data._id;
+              }
               return game.data;
             }
 
@@ -25,10 +33,12 @@ angular.module('hexIslandApp')
               console.log(data);
             }
 
-            if(task === 'create' ) {
-              return $http.post('/api/games', { game_size: $stateParams.game_size }).then(callback, err_callback);
+            if(task === 'create') {
+              return $http.post('/api/games', { size: $stateParams.size }).then(callback, err_callback);
             } else if (task === 'join') {
               return $http.post('/api/games/join', {gameID: gameID}).then(callback, err_callback);
+            } else if (gameID === 'test') {
+              return $http.put('/api/games/test', $stateParams).then(callback, err_callback);
             } else if (!!gameID) {
               return $http.get('/api/games/' + gameID).then(callback, err_callback);
             }
