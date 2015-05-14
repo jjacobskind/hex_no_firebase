@@ -27,17 +27,20 @@ var buildGame = function(req) {
 
   return instantiateGame(tester, req.body)
     .then(function(new_game) {
-      return Game.findByIdAndUpdate(testGameIds[tester], new_game, { update: true, new: true }).exec()
-        .then(function(game) {
-          console.log(game);
-          var returnObj = JSON.parse(JSON.stringify(game));
+      return Game.findByIdAndUpdate(testGameIds[tester], new_game, { update: true }, function(err, game) {
+          return game;
+        })
+        .then(function(gameArr) {
+          // extra method needed to break game out of 1 element array
+          var returnObj = JSON.parse(JSON.stringify(gameArr[0]));
           var userID = String(req.user._id);
           returnObj = helpers.stripPlayerData(userID, returnObj);
-          returnObj.playerID = 0;
+          var i=0;
+          while(!returnObj.players[i].playerQualities) { i++; }
+          returnObj.playerID = i;
           return returnObj;
         });
-
-  });
+    });
 
 };
 

@@ -31,6 +31,7 @@ exports.show = function(req, res) {
       if(userID===String(game.players[i].userRef)) { playerIndex = i; }
     }
 
+
     var returnObj = JSON.parse(JSON.stringify(game));
     returnObj = helpers.stripPlayerData(userID, returnObj);
     returnObj.playerID = playerIndex;
