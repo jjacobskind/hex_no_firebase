@@ -2,88 +2,141 @@
 
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
+var Player = require('./player.model');
+var User = require('../user/user.model');
 
 var GameSchema = new Schema({
-  areAllPlayersAdded: {type: Boolean, require:true, default:false},
-  boardIsSetUp: {type: Boolean, require:true, default: false},
+  areAllPlayersAdded: { type: Boolean, require: true, default: false },
+  boardIsSetUp: { type: Boolean, require: true, default: false },
   chatMessages: [{ name: String, text: String }],
-  currentPlayer: {type: Number, require:true, default: 0},
+  currentPlayer: { type: Number, require: true, default: 0 },
   diceNumber: Number,
-  diceRolled: {type: Boolean, required: true, default: false},
-  roadCardLockdown: {type: Boolean, required: true, default: false},
-  robberMoveLockdown: {type: Boolean, required: true, default: false},
+  diceRolled: { type: Boolean, required: true, default: false },
+  roadCardLockdown: { type: Boolean, required: true, default: false },
+  robberMoveLockdown: { type: Boolean, required: true, default: false },
   longestRoad: { type: {
       owner: Number,
       roadLength: Number
     },
     required: true,
     default: {
-      owner:null,
-      roadLength:null
+      owner: null,
+      roadLength: null
     }
   },
-  turn: {type: Number, required: true, default: 0},
+  turn: { type: Number, required: true, default: 0 },
 
   // BOARD
   gameBoard: {
-    boardIsSetup: {type: Boolean, require:true, default: false},
-    boardTiles: {type: [Schema.Types.Mixed], required:true},
-    boardVertices: {type: [Schema.Types.Mixed], required:true}
+    boardIsSetup: { type: Boolean, require: true, default: false },
+    boardTiles: { type: [Schema.Types.Mixed], required: true },
+    boardVertices: { type: [Schema.Types.Mixed], required: true }
   },
 
-  // // PLAYERS
-  players: [{
-    userRef: {type: mongoose.Schema.ObjectId, ref: 'User', required:true},
-    playerID: {type: Number, required:true},
-    playerName: {type: String, required:true},
-    displayName: {type:String, required:true},
-    hasLongestRoad: {type: Boolean, required:true, default: false},
-    hasLargestArmy: {type: Boolean, required:true, default: false},
-    resources: {
-      wool: {type: Number, required:true, default: 0},
-      grain: {type: Number, required:true, default: 0},
-      brick: {type: Number, required:true, default: 0},
-      ore: {type: Number, required:true, default: 0},
-      lumber: {type: Number, required:true, default: 0}
-    },
-    resourceTotal: {type: Number, required: true, default:0},
-    constructionPool: {
-      cities: {type: Number, required:true, default: 4},
-      settlements: {type: Number, required:true, default: 5},
-      roads: {type: Number, required:true, default: 15}
-    },
-    devCards: {
-      knight: {type: Number, required:true, default: 0},
-      point: {type: Number, required:true, default: 0},
-      monopoly: {type: Number, required:true, default: 0},
-      plenty: {type: Number, required:true, default: 0},
-      roadBuilding: {type: Number, required:true, default: 0}
-    },
-    playerQualities: {
-      settlements: {type: Number, required:true, default: 0},
-      cities: {type: Number, required:true, default: 0},
-      roadSegments: {type: Number, required:true, default: 0},
-      continuousRoadSegments: {type: Number, required:true, default: 0},
-      knightsPlayed: {type: Number, required:true, default: 0},
-      privatePoints: {type: Number, required:true, default: 0}
-    },
-    tradingCosts: {
-      wool: {type: Number, required:true, default: 4},
-      grain: {type: Number, required:true, default: 4},
-      brick: {type: Number, required:true, default: 4},
-      ore: {type: Number, required:true, default: 4},
-      lumber: {type: Number, required:true, default: 4}
-    },
-    ownedProperties: {
-      settlements: [{settlementID: [Number]}],
-      cities: [{settlementID: [Number]}],
-      roads: [{
-        origin: [Number],
-        destination: [Number]
-      }]
-    },
-    rulesValidatedBuildableVertices: [ Schema.Types.Mixed ]
-  }]
+  // PLAYERS
+  players: [{ type: mongoose.Schema.ObjectId, ref: 'Player' }]
 });
+
+// Instance methods
+GameSchema.methods.addPlayer = function(user) {
+  var self = this;
+
+  if(allSlotsFilled(self)) { var err = 'This game has been closed off to new players!'; }
+  if(user.games.indexOf(this._id) !== -1) { var game = self; }
+  if(!!game || !!err) { return callbackOrFauxPromise(err, game); }
+
+  var player_info = {   displayName: user.name.split(' ')[0],
+                        playerID: this.players.length,
+                        playerName: user.name,
+                        userRef: user._id
+                    };
+
+  return Player.create(player_info)
+    .then(function(player) {
+      self.players.push(player._id);
+      if(allSlotsFilled(self)) { self.areAllPlayersAdded = true; }
+      self.save();
+      return User.findById(user._id)
+        .then(function(user) {
+          user.games.push(self._id);
+          user.save();
+          return self;
+        });
+    });
+};
+
+GameSchema.methods.getPlayerIndex = function(user) {
+  var i = this.players.length;
+  while(i--) {
+    if(String(user._id) === String(this.players[i].userRef)) { return i; }
+  }
+  return null;
+};
+
+GameSchema.methods.populatePlayers = function() {
+  return module.exports.populate(this, { path: 'players' })
+    .then(function(game) {
+      return game;
+    });
+};
+
+// Static methods
+
+GameSchema.statics.findByIdAndAddPlayer = function(id, user, cb) {
+  this.findById(id)
+    .exec(function(err, game) {
+      if(!!err) { cb(err); return null; }
+      else if(!!game.getPlayerIndex(user)) {
+        game.populatePlayers()
+          .then(function(populated_game) {
+            cb(null, populated_game);
+          });
+      }
+      else {
+        game.addPlayer(user)
+          .then(function(updated_game) {
+            updated_game.populatePlayers()
+              .then(function(populated_game) {
+                cb(null, populated_game);
+              });
+          });
+      }
+    });
+};
+
+GameSchema.statics.findByIdAndPopulate = function(id, cb) {
+  return this.findById(id).exec()
+    .then(function(game) {
+      return game.populatePlayers()
+        .then(function(populated_game) {
+          return callbackOrFauxPromise(null, populated_game, cb);
+        },
+        function(err) { return callbackOrFauxPromise(err, null, cb); });
+    });
+};
+
+// Private methods
+
+var allSlotsFilled = function(game) {
+  if(game.areAllPlayersAdded) { return true; }
+
+  var num_tiles = 0;
+  for(var i=0, len=game.gameBoard.boardTiles.length; i<len; i++) {
+    num_tiles+= game.gameBoard.boardTiles[i].length;
+  }
+
+  var max_players = Math.round(num_tiles/5);
+  return game.players.length >= max_players;
+};
+
+var callbackOrFauxPromise = function(err, game, cb) {
+  if(!!cb) { cb(err, game); }
+  else {
+    return {
+      then: function(cb2) { cb2(game); },
+      fail: function(cb2) { cb2(err); }
+    };
+  }
+};
 
 module.exports = mongoose.model('Game', GameSchema);

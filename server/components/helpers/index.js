@@ -17,7 +17,7 @@ var updateGame = function(userID, gameID, actionData) {
 	var action = actionData.functionName;
 	var functionParameters = actionData.functionParameters;
 
-	return Game.findById(gameID).exec()
+	return Game.findByIdAndPopulate(gameID)
 		.then(function(game) {
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
@@ -79,7 +79,7 @@ exports.advancePlayerTurn = function(userID, gameID) {
 		var actionData = {
 			functionName: 'advancePlayerTurn',
 			functionParameters: [],
-			properties: [ 
+			properties: [
 				{ game: ['currentPlayer', 'turn', 'diceRolled', 'boardIsSetUp'] }
 			]
 		};
@@ -89,7 +89,7 @@ exports.advancePlayerTurn = function(userID, gameID) {
 				returnData.message = exports.processChatMessage("GAME", gameID, {text: returnData.playerName + " has ended their turn. It is now " + returnData.game.currentPlayerName + "'s turn"});
 
 				delete returnData.playerName;
-				delete returnData.game.currentPlayerName;	
+				delete returnData.game.currentPlayerName;
 				return returnData;
 			});
 	};
@@ -100,7 +100,7 @@ exports.constructBuilding = function(userID, gameID, data){
 	var actionData = {
 		functionName: 'buildSettlement',
 		functionParameters: [data.location],
-		properties: [ 
+		properties: [
 			{ game: ['players', 'longestRoad'] },
 			'location',
 			'type'
@@ -126,7 +126,7 @@ exports.constructRoad = function(userID, gameID, data){
 	var actionData = {
 		functionName: 'buildRoad',
 		functionParameters: [data.location, data.locationDirection],
-		properties: [ 
+		properties: [
 			{ game: ['players', 'longestRoad'] },
 			'location',
 			'type',
@@ -151,7 +151,7 @@ exports.moveRobber = function(userID, gameID, data){
 	var actionData = {
 		functionName: 'moveRobber',
 		functionParameters: [data.destination, data.origin],
-		properties: [ 
+		properties: [
 			{ game: ['robberMoveLockdown'] },
 			'destination',
 			'origin'
@@ -172,8 +172,8 @@ exports.moveRobber = function(userID, gameID, data){
 exports.processChatMessage = function(userID, gameID, data){
 	var messageObj = null;
 	var message = data.text.trim();
-	if(message.length>160){ 
-		message = message.slice(0, 160); 
+	if(message.length>160){
+		message = message.slice(0, 160);
 	} else if(!message || message.length===0){
 		obj = null;
 		return obj;
@@ -188,7 +188,6 @@ exports.processChatMessage = function(userID, gameID, data){
 			if(userID==="GAME" || playerIndex !== -1){
 				if(userID==="GAME") { messageObj = { name: userID, text: message }; }
 				else { messageObj = {name: game.players[playerIndex].displayName, text: message}; }
-				
 				game.chatMessages.push(messageObj);
 				game.save();
 			}
@@ -202,7 +201,7 @@ exports.rollDice = function(userID, gameID) {
 	var actionData = {
 		functionName: 'rollDice',
 		functionParameters: [],
-		properties: [ 
+		properties: [
 			{ game: ['players', 'robberMoveLockdown', 'diceRolled', 'diceNumber'] }
 		]
 	};
