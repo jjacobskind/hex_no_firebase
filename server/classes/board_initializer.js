@@ -1,10 +1,16 @@
+var GameHelpers = require('../modules/game_helpers');
+var BoardNavigator = require('./board.navigator.js');
+
 var BoardInitializer = function(small_num, large_num) {
-  return {
-    boardVertices: this.createVertices(small_num, large_num)
-  };
+  this.small_num = small_num;
+  this.large_num = large_num;
+  this.boardVertices = this.createVertices();
+  this.boardTiles = this.createTiles();
+  this.addPorts();
 };
 
-BoardInitializer.prototype.createVertices = function(small_num, large_num) {
+BoardInitializer.prototype.createVertices = function() {
+  var small_num = this.small_num, large_num = this.large_num;
   if(small_num >= large_num) { throw 'Cannot create vertices when large_num (' + large_num + ') is <= small_num (' + small_num + ')'; }
   var iterator = 1, current_row_size = small_num, board = [];
 
@@ -36,74 +42,88 @@ BoardInitializer.prototype.createRow = function(num_elements) {
   return row;
 };
 
-BoardInitializer.prototype.createResources = function(small_num, large_num) {
+BoardInitializer.prototype.totalNumberOfTiles = function() {
+  var small_num = this.small_num, large_num = this.large_num;
   var num_tiles = large_num;
-  for(var i=large_num-1;i>=small_num;i--){
-    num_tiles+= (i*2);
-  }
-  var num_extra_deserts= Math.round(num_tiles/15)-1;
-  if(num_extra_deserts<0){
-    num_extra_deserts=0;
-  }
+  for(var i=small_num; i < large_num; i++) { num_tiles += (i*2); }
+  return num_tiles;
+};
 
-  var numberChit_bank = [5,2,6,3,8,10,9,12,11,4,8,10,9,4,5,6,3,11];
-  var numberChits = [];
-  i=0;
-  while(numberChits.length+num_extra_deserts+1 < num_tiles){
-    numberChits.push(numberChit_bank[i%18]);
+BoardInitializer.prototype.numberOfDeserts = function(number_of_tiles) {
+  var number_of_deserts= Math.round(number_of_tiles/15);
+  return Math.max(number_of_deserts, 1);
+};
+
+BoardInitializer.prototype.createNumberChitsArray = function(number_of_tiles, number_of_deserts) {
+  var number_chit_bank = [5,2,6,3,8,10,9,12,11,4,8,10,9,4,5,6,3,11];
+  var number_chits_array = [];
+  var i=0;
+  while(number_chits_array.length + number_of_deserts < number_of_tiles){
+    number_chits_array.push(number_chit_bank[i % 18]);
     i++;
   }
+  return number_chits_array;
+};
 
-  // There is one less of ore and brick than the other resources
-  var resources = ['grain', 'lumber', 'wool'];
-  while(num_extra_deserts--){
-    resources.push('desert');
-  }
-
-  var resource_bank = this.game.shuffle(['grain', 'lumber', 'wool', 'brick', 'ore'])
-  i=0;
-
-  resources.unshift("desert");
-  while(resources.length < num_tiles){
-    resources.push(resource_bank[i%5]);
+BoardInitializer.prototype.createResourcesArray = function(number_of_deserts, number_of_tiles) {
+  var resources = ['grain', 'lumber', 'wool']; // these get added first to ensure they are prioritized over ore and brick
+  while(--number_of_deserts) { resources.push('desert'); }
+  var resource_bank = ['grain', 'lumber', 'wool', 'brick', 'ore'];
+  var i=0;
+  while(resources.length < number_of_tiles - 1){
+    resources.push(resource_bank[i % 5]);
     i++;
   }
-  numberChits = numberChits.reverse();
-  resources = this.game.shuffle(resources);
-  var tempHexArray = [];
-  var desertRandomizer = Math.ceil((Math.random() * num_tiles));
+  resources = GameHelpers.shuffle(resources);
+  resources.unshift('desert');
+  return resources;
+};
 
-  // Inserted first desert manually
-  // Using modulus to insert each tile by index and loop back to zero index to fill in tiles that come before the desert
-  for (i = desertRandomizer; i<(desertRandomizer+num_tiles); i++) {
-    var this_resource = resources.pop();
-    if(this_resource==='desert'){
+BoardInitializer.prototype.createTilesArray = function(number_of_tiles, number_chits_array, resources_array) {
+  var tiles_array = [];
+  var start_index = Math.ceil((Math.random() * number_of_tiles));
+
+  for (var i = start_index; i < (start_index + number_of_tiles); i++) {
+    var this_resource = resources_array.pop();
+    var current_index = i % number_of_tiles;
+    if(this_resource === 'desert') {
       var this_chit = 7;
       var robber = true;
     }
     else {
-      this_chit = numberChits.pop();
+      this_chit = number_chits_array.shift();
       robber = false;
     }
-    tempHexArray[i%num_tiles] = {
-      hex: i%num_tiles +1,
+    tiles_array[current_index] = {
       resource: this_resource,
       chit: this_chit,
       robber: robber
     };
   }
+  return tiles_array;
+};
 
-  // Restructure array of tiles into a multi-dimensional array with same dimensions as the board rendering
+BoardInitializer.prototype.makeTilesArrayMultiDimensional = function(tiles_array) {
+  var small_num = this.small_num, large_num = this.large_num;
   var increment = 1;
-  var used_tiles=0;
-  this.boardTiles=[];
-  for(var i=small_num;i>=small_num;i+=increment){
-    this.boardTiles.push(tempHexArray.slice(used_tiles, used_tiles+i));
-    used_tiles+=i;
-    if(i===large_num){
-      increment= -1;
-    }
+  var used_tiles = 0;
+  var board_tiles = [];
+  for(var i=small_num; i >= small_num; i += increment) {
+    board_tiles.push(tiles_array.slice(used_tiles, used_tiles + i));
+    used_tiles += i;
+    if(i === large_num) { increment= -1; }
   }
+  return board_tiles;
+};
+
+BoardInitializer.prototype.createTiles = function() {
+  var number_of_tiles     = this.totalNumberOfTiles();
+  var number_of_deserts   = this.numberOfDeserts(number_of_tiles);
+  var number_chits_array  = this.createNumberChitsArray(number_of_tiles, number_of_deserts);
+  var resources_array     = this.createResourcesArray(number_of_deserts, number_of_tiles);
+  var tiles_array         = this.createTilesArray(number_of_tiles, number_chits_array, resources_array);
+  var board_tiles         = this.makeTilesArrayMultiDimensional(tiles_array);
+  return board_tiles;
 };
 
 BoardInitializer.prototype.setVerticesOnTile = function(){
@@ -142,132 +162,86 @@ BoardInitializer.prototype.setVerticesOnTile = function(){
   }
 };
 
-BoardInitializer.prototype.portCreation = function() {
-  var num_sides = (this.boardVertices.length -1 + ((this.boardVertices[0].length-1)*2)) * 2;
-  var num_spaces = Math.round(2*num_sides/3);
-  var num_ports = num_sides - num_spaces;
-  var two_space_intervals = 0;
-  var three_space_intervals = 0;
-  var space_interval_sum=0;
+BoardInitializer.prototype.calculateNumberOfSides = function() {
+  var number_of_sides_along_left_edge = this.boardVertices.length - 3;
+  var number_of_sides_along_top_edge = this.boardVertices[0].length * 2; // left and rightmost spaces already included in sides
+  return (number_of_sides_along_left_edge + number_of_sides_along_top_edge) * 2;
+};
 
-  // Number of tile sides between ports can either be 2 or three
-  // Based on the size of the board,calculate exactly how many 2 and 3-interval gaps there are so that it circles the board once
-  // while maintaining as close as possible to a 2:1 ratio of 2:3 side gaps
-  while(space_interval_sum<num_spaces){
-    two_space_intervals+=2;
-    three_space_intervals++;
-    space_interval_sum = (two_space_intervals*2)+(three_space_intervals*3);
-  }
-  var space_interval_diff = space_interval_sum-num_spaces - 1;
-  switch(space_interval_diff){
-    case 1:
-      two_space_intervals++;
-      three_space_intervals--;
-      break;
-    case 2:
-      two_space_intervals--;
-      break;
-    case 3:
-      three_space_intervals--;
-      break;
-    case 4:
-      two_space_intervals-=2;
-      break;
-    case 5:
-      two_space_intervals--;
-      three_space_intervals--;
-      break;
-    case 6:
-      three_space_intervals-=2;
-      break;
-  }
-
-  // Creates an array of ports to be placed
-  // Even number of general ports and specific ports, and roughly even number of ports for each resource
-  var resource_ports = ['lumber', 'grain', 'wool', 'brick', 'ore'];
-  var all_ports = [];
-  var i=0;
-  var len = resource_ports.length;
-  for(var count=1;count<=num_ports; count++){
-    if(count%2===1){
-      all_ports.push(resource_ports[i%len])
-      i++;
-    } else {
-      all_ports.push('general');
-    }
-  }
-
-  var all_intervals = [];
-
-  var frequency = Math.floor(num_ports/three_space_intervals);
-
-  // Creates an array with the order of 2 and 3 interval gaps
-  // This way, the 3 interval gaps aren't all grouped on one side of the board
-  // NOTE: Intervals of 2 and 3 spaces skip 1 and 2 ports respectively
-  for(i=1;i<=num_ports;i++){
-    if(i%frequency===0 && three_space_intervals!==0){
-      all_intervals.push(2);
-      three_space_intervals--;
-    } else {
-      all_intervals.push(1);
-    }
-  }
-
-
-  // Create an array with references to all outer vertex objects to facilitate port assignment
-  var vertex = [1, 0];
+BoardInitializer.prototype.buildBorderVerticesArray = function() {
   var border_vertices = [];
+  var board_navigator = new BoardNavigator(this.boardVertices);
 
-  while(vertex!==null){
+  // push vertices along top of board
+  var vertex = [1, 0];
+  while(vertex !== null) {
     border_vertices.push(vertex);
-    vertex = this.getRoadDestination(vertex, "right");
+    vertex = board_navigator.getRoadDestination(vertex, 'right');
   }
 
+  // push vertices along right edge of board and compile separate array of vertices along left edge
   var left_side = [];
-  for(var row=2, num_rows=this.boardVertices.length; row<=this.boardVertices.length-3; row++){
-    border_vertices.push([row, this.boardVertices[row].length-1]);
+  for(var row=2, num_side_vertices=this.boardVertices.length-2; row < num_side_vertices; row++){
+    border_vertices.push([row, this.boardVertices[row].length - 1]);
     left_side.push([row, 0]);
   }
-
   left_side = left_side.reverse();
 
-  vertex = [num_rows-2, this.boardVertices[num_rows-2].length-1];
-
-  while(vertex!==null){
+  // push vertices along bottom of board
+  vertex = [num_side_vertices, this.boardVertices[num_side_vertices].length - 1]
+  while(vertex !== null){
     border_vertices.push(vertex);
-    vertex = this.getRoadDestination(vertex, "left");
+    vertex = board_navigator.getRoadDestination(vertex, 'left');
   }
 
-  border_vertices = border_vertices.concat(left_side);
+  border_vertices = border_vertices.concat(left_side);  // concatenate left side vertices onto array
+  return border_vertices;
+};
 
-  // Since port was built on first vertex in array, don't need last vertex
-  border_vertices.pop();
+// TODO: Refactor this out. Instead of creating a ports array, just use same conditionals to set port string
+BoardInitializer.prototype.getPortType = function(port_number) {
+  var resource_ports = ['lumber', 'grain', 'wool', 'brick', 'ore'];
+  var resource_index = (port_number/2) % resource_ports.length;
+  if(port_number % 2 === 0) { return resource_ports[resource_index]; }
+  return 'general';
+};
 
-  // Don't need to iterate through last interval, since it just leads back to first vertex
-  all_intervals.pop();
+BoardInitializer.prototype.assignPorts = function(border_vertices_array, intervals_array) {
+  var port_count = 0, row, col, self = this;
+  var num_sides = this.calculateNumberOfSides();
+  var spacing = [2, 2, 3];
+  var remainder = num_sides % 10; //how many sides are left after a full [2, 2, 3] cycle
+  var further_remainder = remainder % 3;  // how many sides will remain after the last port and 2 spacers are accounted for?
 
-  // Ports beng assigned to vertices
-  // At the beginning of each loop, i is at a buildable vertex
-  // Assigns ports on that vertex and the next one before looping through next interval
-  for(i=0, len=border_vertices.length; i<len;i++) {
-    var this_port = all_ports.pop();
-    var row=border_vertices[i][0];
-    var col = border_vertices[i][1];
-    this.boardVertices[row][col].port = this_port;
-    i++;
-    if(i<len){
-      var row=border_vertices[i][0];
-      var col = border_vertices[i][1];
-      this.boardVertices[row][col].port = this_port;
+  var assignPortToBothVertices = function(index, second_time) {
+    row = border_vertices_array[index][0];
+    col = border_vertices_array[index][1];
+    self.boardVertices[row][col].port = self.getPortType(port_count);
+    if(!second_time) {
+      assignPortToBothVertices(++index, true);
+      port_count++;
+      return index;
     }
+  };
 
-    // Fast-forwards to next port-buildable vertex, using the array of 2 & 3 gap interval values
-    while(all_intervals[0]>0){
-      i++;
-      all_intervals[0]--;
+  var vertex_index = 0, len = border_vertices_array.length, loop_count = 0;
+  var adjusted = false;
+  while(vertex_index < len - 1) {
+    vertex_index = assignPortToBothVertices(vertex_index);
+    if(further_remainder === 2 && loop_count === 2) {
+      vertex_index += 2;
+    } else if(further_remainder === 3 && loop_count === 1) {
+      vertex_index += 3;
+    } else {
+      vertex_index += spacing[loop_count % spacing.length];
     }
-    all_intervals.shift();
+    loop_count++;
   }
 };
 
-exports.BoardInitializer = BoardInitializer;
+BoardInitializer.prototype.addPorts = function() {
+  var border_vertices_array = this.buildBorderVerticesArray();
+  this.assignPorts(border_vertices_array);
+};
+
+module.exports = BoardInitializer;
