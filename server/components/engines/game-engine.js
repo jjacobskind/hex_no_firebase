@@ -21,7 +21,7 @@ var GameEngine = function(game, small_num, large_num) {
         this.players.push(new Player(game.players[i]));
       }
     }
-}
+};
 
 /*************************************************
 FUNCTIONS THAT ARE ONLY NEEDED ON THE BACKEND ENGINE
