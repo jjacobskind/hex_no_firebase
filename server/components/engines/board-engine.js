@@ -4,8 +4,8 @@ var GameBoard = function(game, board, small_num, large_num) {
   this.game = game;
   if(!board) {
     var new_board = new BoardInitializer(small_num, large_num);
-    this.boardTiles = new_board.boardTiles;
-    this.boardVertices = new_board.boardVertices;
+    this.boardTiles = new_board.tiles;
+    this.boardVertices = new_board.vertices;
   } else {
     this.boardTiles = board.boardTiles;
     this.boardVertices = board.boardVertices;

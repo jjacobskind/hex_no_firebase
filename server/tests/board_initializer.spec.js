@@ -17,13 +17,13 @@ describe('BoardInitializer class', function() {
   describe('boardVertices', function() {
     it('is a multidimensional array with top-level length = ((large_num - small_num) * 4) + 4', function() {
       var expected_length = ((large_num - small_num) * 4) + 4;
-      expect(board.boardVertices.length).toEqual(expected_length);
+      expect(board.vertices.length).toEqual(expected_length);
     });
 
     it('has two shortest rows, the length of which is small_num', function() {
       var small_num_row_count = 0;
       var smaller_row_than_small_num_found = false;
-      board.boardVertices.forEach(function(row) {
+      board.vertices.forEach(function(row) {
         if(row.length < small_num) { smaller_row_than_small_num_found = true; }
         else if(row.length === small_num) { small_num_row_count++; }
       });
@@ -34,7 +34,7 @@ describe('BoardInitializer class', function() {
     it('has two largest rows, the length of which is large_num + 1', function() {
       var large_num_row_count = 0;
       var larger_row_than_small_num_found = false;
-      board.boardVertices.forEach(function(row) {
+      board.vertices.forEach(function(row) {
         if(row.length > large_num + 1) { larger_row_than_small_num_found = true; }
         else if(row.length === large_num + 1) { large_num_row_count++; }
       });
@@ -43,17 +43,17 @@ describe('BoardInitializer class', function() {
     });
 
     it('has rows of symmetrical length', function() {
-      var halfway_point = (board.boardVertices.length / 2) - 1
-      var vertices = board.boardVertices;
+      var halfway_point = (board.vertices.length / 2) - 1
+      var vertices = board.vertices;
       for(var i=0, len=halfway_point; i < len; i++) {
         expect(vertices[i].length).toEqual(vertices[vertices.length - i - 1].length);
       }
     });
 
     it('has vertex keys for every element', function() {
-      for(row=0, max_row=board.boardVertices.length; row < max_row; row++) {
-        for(col=0, max_col=board.boardVertices[row].length; col < max_col; col++) {
-          var vertex = board.boardVertices[row][col];
+      for(row=0, max_row=board.vertices.length; row < max_row; row++) {
+        for(col=0, max_col=board.vertices[row].length; col < max_col; col++) {
+          var vertex = board.vertices[row][col];
           var has_all_keys = vertex.hasOwnProperty('connections');
           has_all_keys = has_all_keys && vertex.connections.hasOwnProperty('vertical');
           has_all_keys = has_all_keys && vertex.connections.hasOwnProperty('left');
@@ -166,8 +166,8 @@ describe('BoardInitializer class', function() {
   describe('calculateNumberOfSides method', function() {
     it('returns the number of tile edges along the rim of the board', function() {
       var num_sides = board.calculateNumberOfSides();
-      var top_and_bottom = (board.boardVertices[0].length * 2) * 2;
-      var left_and_right = (board.boardVertices.length - 3) * 2;
+      var top_and_bottom = (board.vertices[0].length * 2) * 2;
+      var left_and_right = (board.vertices.length - 3) * 2;
       var total_sides = top_and_bottom + left_and_right;
       expect(num_sides).toEqual(total_sides);
     });
@@ -184,14 +184,14 @@ describe('BoardInitializer class', function() {
 
     it('assigns a port to the first vertex in array', function() {
       var row = border_vertices[0].row, col = border_vertices[0].col;
-      expect(!!board.boardVertices[row][col].port).toBe(true);
+      expect(!!board.vertices[row][col].port).toBe(true);
     });
 
     it('assigns ports to exactly two adjacent vertices at a time', function() {
       for(var i=0, len=border_vertices.length; i < len; i++) {
         var adjacent_ports = 0;
         var row = border_vertices[i].row, col = border_vertices[i].col;
-        if(!!board.boardVertices[row][col].port) { adjacent_ports++; }
+        if(!!board.vertices[row][col].port) { adjacent_ports++; }
         else {
           var valid_result = adjacent_ports === 2 || adjacent_ports === 0;
           adjacent_ports = 0;
@@ -205,7 +205,7 @@ describe('BoardInitializer class', function() {
       var adjacent_empty_sides = 0;
       for(var i=0, len=border_vertices.length; i < len; i++) {
         var row = border_vertices[i].row, col = border_vertices[i].col;
-        if(!board.boardVertices[row][col].port) { adjacent_empty_sides++; }
+        if(!board.vertices[row][col].port) { adjacent_empty_sides++; }
         else {
           var valid_result = adjacent_empty_sides === 1 || adjacent_empty_sides === 2 || adjacent_empty_sides === 0;
           if(adjacent_empty_sides === 1) { two_found = true; }
@@ -220,13 +220,13 @@ describe('BoardInitializer class', function() {
     it('leaves either two or three sides at the end of the loop empty', function() {
       var num_vertices = border_vertices.length;
       var row = border_vertices[num_vertices - 1].row, col = border_vertices[num_vertices - 1].col
-      expect(!!board.boardVertices[row][col].port).toBe(false);
+      expect(!!board.vertices[row][col].port).toBe(false);
 
       // if the second-to-last vertex doesn't have have a port, the third-to-last should
       row = border_vertices[num_vertices - 2].row, col = border_vertices[num_vertices - 2].col
-      if(!board.boardVertices[row][col].port) {
+      if(!board.vertices[row][col].port) {
         row = border_vertices[num_vertices - 3].row, col = border_vertices[num_vertices - 3].col
-        expect(!!board.boardVertices[row][col].port).toBe(true);
+        expect(!!board.vertices[row][col].port).toBe(true);
       }
     });
   });

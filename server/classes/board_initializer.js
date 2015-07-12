@@ -4,8 +4,8 @@ var BoardNavigator = require('./board_navigator.js');
 var BoardInitializer = function(small_num, large_num) {
   this.small_num = small_num;
   this.large_num = large_num;
-  this.boardVertices = this.createVertices();
-  this.boardTiles = this.createTiles();
+  this.vertices = this.createVertices();
+  this.tiles = this.createTiles();
   this.addPorts();
 };
 
@@ -127,18 +127,18 @@ BoardInitializer.prototype.createTiles = function() {
 };
 
 BoardInitializer.prototype.setVerticesOnTile = function(){
-  var num_rows = this.boardTiles.length;
-  var num_vertex_rows = this.boardVertices.length;
+  var num_rows = this.tiles.length;
+  var num_vertex_rows = this.vertices.length;
 
   for(var row=0; row<num_rows; row++){
-    for(var col=0, num_cols=this.boardTiles[row].length; col<num_cols; col++){
+    for(var col=0, num_cols=this.tiles[row].length; col<num_cols; col++){
       var vertex_row = row*2;
-      var current_tile = this.boardTiles[row][col];
+      var current_tile = this.tiles[row][col];
 
       // Add resource tile to vertices on the second and third rows of the tile
       for(var i=1;i<=2;i++){
-        this.boardVertices[vertex_row+i][col].adjacent_tiles.push(current_tile);
-        this.boardVertices[vertex_row+i][col+1].adjacent_tiles.push(current_tile);
+        this.vertices[vertex_row+i][col].adjacent_tiles.push(current_tile);
+        this.vertices[vertex_row+i][col+1].adjacent_tiles.push(current_tile);
       }
 
       // Adjust column of top vertex of tile depending on whether the vertex is in the top or bottom half of board
@@ -156,21 +156,21 @@ BoardInitializer.prototype.setVerticesOnTile = function(){
       }
 
       // Add resource tile to top and bottom vertices of the tile
-      this.boardVertices[vertex_row][top_col_adjusted].adjacent_tiles.unshift(current_tile);
-      this.boardVertices[vertex_row+3][bottom_col_adjusted].adjacent_tiles.push(current_tile);
+      this.vertices[vertex_row][top_col_adjusted].adjacent_tiles.unshift(current_tile);
+      this.vertices[vertex_row+3][bottom_col_adjusted].adjacent_tiles.push(current_tile);
     }
   }
 };
 
 BoardInitializer.prototype.calculateNumberOfSides = function() {
-  var number_of_sides_along_left_edge = this.boardVertices.length - 3;
-  var number_of_sides_along_top_edge = this.boardVertices[0].length * 2; // left and rightmost spaces already included in sides
+  var number_of_sides_along_left_edge = this.vertices.length - 3;
+  var number_of_sides_along_top_edge = this.vertices[0].length * 2; // left and rightmost spaces already included in sides
   return (number_of_sides_along_left_edge + number_of_sides_along_top_edge) * 2;
 };
 
 BoardInitializer.prototype.buildBorderVerticesArray = function() {
   var border_vertices = [];
-  var board_navigator = new BoardNavigator(this.boardVertices);
+  var board_navigator = new BoardNavigator(this.vertices);
 
   // push vertices along top of board
   var vertex = { row: 1, col: 0 };
@@ -181,14 +181,14 @@ BoardInitializer.prototype.buildBorderVerticesArray = function() {
 
   // push vertices along right edge of board and compile separate array of vertices along left edge
   var left_side = [];
-  for(var row=2, num_side_vertices=this.boardVertices.length-2; row < num_side_vertices; row++){
-    border_vertices.push({ row: row, col: this.boardVertices[row].length - 1 });
+  for(var row=2, num_side_vertices=this.vertices.length-2; row < num_side_vertices; row++){
+    border_vertices.push({ row: row, col: this.vertices[row].length - 1 });
     left_side.push({ row: row, col: 0 });
   }
   left_side = left_side.reverse();
 
   // push vertices along bottom of board
-  vertex = { row: num_side_vertices, col: this.boardVertices[num_side_vertices].length - 1 }
+  vertex = { row: num_side_vertices, col: this.vertices[num_side_vertices].length - 1 }
   while(vertex !== null){
     border_vertices.push(vertex);
     vertex = board_navigator.getRoadDestination(vertex, 'left');
@@ -216,7 +216,7 @@ BoardInitializer.prototype.assignPorts = function(border_vertices_array, interva
   var assignPortToBothVertices = function(index, second_time) {
     row = border_vertices_array[index].row;
     col = border_vertices_array[index].col;
-    self.boardVertices[row][col].port = self.getPortType(port_count);
+    self.vertices[row][col].port = self.getPortType(port_count);
     if(!second_time) {
       assignPortToBothVertices(++index, true);
       port_count++;
