@@ -1,18 +1,18 @@
 var BoardInitializer = require('../classes/board_initializer');
 
 describe('BoardInitializer class', function() {
-  small_num               = Math.ceil(Math.random() * 100);
-  large_num               = Math.ceil(Math.random() * 100) + small_num;
-  board                   = new BoardInitializer(small_num, large_num);
-  num_tiles               = board.totalNumberOfTiles();
-  num_deserts             = board.numberOfDeserts(num_tiles);
-  number_chits_array      = board.createNumberChitsArray(num_tiles, num_deserts);
-  number_chits_array_test = number_chits_array.slice();
-  resources_array         = board.createResourcesArray(num_deserts, num_tiles);
-  resources_array_test    = resources_array.slice();
-  tiles_array             = board.createTilesArray(num_tiles, number_chits_array, resources_array);
-  board_tiles             = board.makeTilesArrayMultiDimensional(tiles_array);
-  border_vertices         = board.buildBorderVerticesArray();
+  var small_num               = Math.ceil(Math.random() * 100);
+  var large_num               = Math.ceil(Math.random() * 100) + small_num;
+  var board                   = new BoardInitializer(small_num, large_num);
+  var num_tiles               = board.totalNumberOfTiles();
+  var num_deserts             = board.numberOfDeserts(num_tiles);
+  var number_chits_array      = board.createNumberChitsArray(num_tiles, num_deserts);
+  var number_chits_array_test = number_chits_array.slice();
+  var resources_array         = board.createResourcesArray(num_deserts, num_tiles);
+  var resources_array_test    = resources_array.slice();
+  var tiles_array             = board.createTilesArray(num_tiles, number_chits_array, resources_array);
+  var board_tiles             = board.makeTilesArrayMultiDimensional(tiles_array);
+  var border_vertices         = board.buildBorderVerticesArray();
 
   describe('boardVertices', function() {
     it('is a multidimensional array with top-level length = ((large_num - small_num) * 4) + 4', function() {

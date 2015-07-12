@@ -1,5 +1,5 @@
 var GameHelpers = require('../modules/game_helpers');
-var BoardNavigator = require('./board.navigator.js');
+var BoardNavigator = require('./board_navigator.js');
 
 var BoardInitializer = function(small_num, large_num) {
   this.small_num = small_num;
