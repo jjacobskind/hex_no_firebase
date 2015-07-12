@@ -12,6 +12,7 @@ describe('BoardInitializer class', function() {
   resources_array_test    = resources_array.slice();
   tiles_array             = board.createTilesArray(num_tiles, number_chits_array, resources_array);
   board_tiles             = board.makeTilesArrayMultiDimensional(tiles_array);
+  border_vertices         = board.buildBorderVerticesArray();
 
   describe('boardVertices', function() {
     it('is a multidimensional array with top-level length = ((large_num - small_num) * 4) + 4', function() {
@@ -173,12 +174,60 @@ describe('BoardInitializer class', function() {
   });
 
   describe('buildBorderVerticesArray method', function() {
-    beforeEach(function() {
-      border_vertices = board.buildBorderVerticesArray();
-    });
-
     it('has length equal to output of calculateNumberOfSides method', function() {
       expect(border_vertices.length).toEqual(board.calculateNumberOfSides());
+    });
+  });
+
+  describe('assignPorts method', function() {
+    board.assignPorts(border_vertices);
+
+    it('assigns a port to the first vertex in array', function() {
+      var row = border_vertices[0].row, col = border_vertices[0].col;
+      expect(!!board.boardVertices[row][col].port).toBe(true);
+    });
+
+    it('assigns ports to exactly two adjacent vertices at a time', function() {
+      for(var i=0, len=border_vertices.length; i < len; i++) {
+        var adjacent_ports = 0;
+        var row = border_vertices[i].row, col = border_vertices[i].col;
+        if(!!board.boardVertices[row][col].port) { adjacent_ports++; }
+        else {
+          var valid_result = adjacent_ports === 2 || adjacent_ports === 0;
+          adjacent_ports = 0;
+          expect(valid_result).toBe(true);
+        }
+      }
+    });
+
+    it('has gaps of two and three sides between ports', function() {
+      var two_found = false, three_found = false;
+      var adjacent_empty_sides = 0;
+      for(var i=0, len=border_vertices.length; i < len; i++) {
+        var row = border_vertices[i].row, col = border_vertices[i].col;
+        if(!board.boardVertices[row][col].port) { adjacent_empty_sides++; }
+        else {
+          var valid_result = adjacent_empty_sides === 1 || adjacent_empty_sides === 2 || adjacent_empty_sides === 0;
+          if(adjacent_empty_sides === 1) { two_found = true; }
+          else if(adjacent_empty_sides === 2) { three_found = true; }
+          adjacent_empty_sides = 0;
+          expect(valid_result).toBe(true);
+        }
+      }
+      expect(two_found && three_found).toBe(true);
+    });
+
+    it('leaves either two or three sides at the end of the loop empty', function() {
+      var num_vertices = border_vertices.length;
+      var row = border_vertices[num_vertices - 1].row, col = border_vertices[num_vertices - 1].col
+      expect(!!board.boardVertices[row][col].port).toBe(false);
+
+      // if the second-to-last vertex doesn't have have a port, the third-to-last should
+      row = border_vertices[num_vertices - 2].row, col = border_vertices[num_vertices - 2].col
+      if(!board.boardVertices[row][col].port) {
+        row = border_vertices[num_vertices - 3].row, col = border_vertices[num_vertices - 3].col
+        expect(!!board.boardVertices[row][col].port).toBe(true);
+      }
     });
   });
 });

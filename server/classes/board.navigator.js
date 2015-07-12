@@ -7,8 +7,9 @@ BoardNavigator.prototype.getRoadDestination = function(current_location, directi
   var num_rows = this.board_vertices.length;
 
   //added this so that we can pass in a uniform location to all functions
-  var row = current_location[0];
-  var col = current_location[1];
+  var row = current_location.row;
+  var col = current_location.col;
+  var new_vertex = {};
 
   // Row index of vertical adjacent vertex is one greater than the current vertex row if the current row is odd
   // If the current row is even, the adjacent vertical vertex is one less than the current row index
@@ -18,10 +19,14 @@ BoardNavigator.prototype.getRoadDestination = function(current_location, directi
       return null;
     }
     else if (row%2===0){
-      return [row-1, col];
+      new_vertex.row = row - 1;
+      new_vertex.col = col;
+      return new_vertex;
     }
     else {
-      return [row+1, col];
+      new_vertex.row = row + 1;
+      new_vertex.col = col;
+      return new_vertex;
     }
   }
 
@@ -52,7 +57,9 @@ BoardNavigator.prototype.getRoadDestination = function(current_location, directi
     } else if(row % 2===0) {
       col--;
     }
-    return [adjusted_row, col];
+    new_vertex.row = adjusted_row;
+    new_vertex.col = col;
+    return new_vertex;
   }
   else if(direction === 'right') {
     var last_col = this.board_vertices[row].length-1;
@@ -77,7 +84,9 @@ BoardNavigator.prototype.getRoadDestination = function(current_location, directi
     } else if(row % 2===1) {
       col++;
     }
-    return [adjusted_row, col];
+    new_vertex.row = adjusted_row;
+    new_vertex.col = col;
+    return new_vertex;
   }
 };
 

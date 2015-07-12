@@ -173,7 +173,7 @@ BoardInitializer.prototype.buildBorderVerticesArray = function() {
   var board_navigator = new BoardNavigator(this.boardVertices);
 
   // push vertices along top of board
-  var vertex = [1, 0];
+  var vertex = { row: 1, col: 0 };
   while(vertex !== null) {
     border_vertices.push(vertex);
     vertex = board_navigator.getRoadDestination(vertex, 'right');
@@ -182,13 +182,13 @@ BoardInitializer.prototype.buildBorderVerticesArray = function() {
   // push vertices along right edge of board and compile separate array of vertices along left edge
   var left_side = [];
   for(var row=2, num_side_vertices=this.boardVertices.length-2; row < num_side_vertices; row++){
-    border_vertices.push([row, this.boardVertices[row].length - 1]);
-    left_side.push([row, 0]);
+    border_vertices.push({ row: row, col: this.boardVertices[row].length - 1 });
+    left_side.push({ row: row, col: 0 });
   }
   left_side = left_side.reverse();
 
   // push vertices along bottom of board
-  vertex = [num_side_vertices, this.boardVertices[num_side_vertices].length - 1]
+  vertex = { row: num_side_vertices, col: this.boardVertices[num_side_vertices].length - 1 }
   while(vertex !== null){
     border_vertices.push(vertex);
     vertex = board_navigator.getRoadDestination(vertex, 'left');
@@ -214,8 +214,8 @@ BoardInitializer.prototype.assignPorts = function(border_vertices_array, interva
   var further_remainder = remainder % 3;  // how many sides will remain after the last port and 2 spacers are accounted for?
 
   var assignPortToBothVertices = function(index, second_time) {
-    row = border_vertices_array[index][0];
-    col = border_vertices_array[index][1];
+    row = border_vertices_array[index].row;
+    col = border_vertices_array[index].col;
     self.boardVertices[row][col].port = self.getPortType(port_count);
     if(!second_time) {
       assignPortToBothVertices(++index, true);
