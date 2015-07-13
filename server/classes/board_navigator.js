@@ -1,9 +1,9 @@
-var BoardNavigator = function(board_vertices) {
-  this.board_vertices = board_vertices;
+var BoardNavigator = function(vertices) {
+  this.vertices = vertices;
 };
 
 BoardNavigator.prototype.goLeft = function(current_vertex) {
-  var num_rows = this.board_vertices.length;
+  var num_rows = this.vertices.length;
 
   //added this so that we can pass in a uniform location to all functions
   var row = current_vertex.row;
@@ -14,11 +14,58 @@ BoardNavigator.prototype.goLeft = function(current_vertex) {
 
   var no_left_vertex = ((row_is_odd && vertex_in_top_half) || (!row_is_odd && !vertex_in_top_half)) && col === 0;
   if(no_left_vertex) { return null; }
+
+  var new_row = row, new_col = col;
+  if(row_is_odd) { new_row--; }
+  else { new_row++; }
+  if(row_is_odd && vertex_in_top_half) { new_col--; }
+  else if(!row_is_odd && !vertex_in_top_half) { new_col--; }
+  return { row: new_row, col: new_col };
+};
+
+BoardNavigator.prototype.goRight = function(current_vertex) {
+  var num_rows = this.vertices.length;
+
+  //added this so that we can pass in a uniform location to all functions
+  var row = current_vertex.row;
+  var col = current_vertex.col;
+  var vertex_in_top_half = row <= num_rows/2;
+  var row_is_odd = row % 2 === 1;
+  var new_vertex = {};
+
+  var last_col = this.vertices[row].length - 1;
+  var no_right_vertex = ((row_is_odd && vertex_in_top_half) || (!row_is_odd && !vertex_in_top_half)) && col === last_col;
+  if(no_right_vertex) { return null; }
+
+  var new_row = row, new_col = col;
+  if(row_is_odd) { new_row--; }
+  else { new_row++; }
+  if(!row_is_odd && vertex_in_top_half) { new_col++; }
+  else if(row_is_odd && !vertex_in_top_half) { new_col++; }
+  return { row: new_row, col: new_col };
+};
+
+BoardNavigator.prototype.goVertical = function(current_vertex) {
+  var num_rows = this.vertices.length;
+
+  //added this so that we can pass in a uniform location to all functions
+  var row = current_vertex.row;
+  var col = current_vertex.col;
+  var vertex_in_top_half = row <= num_rows/2;
+  var row_is_odd = row % 2 === 1;
+  var new_vertex = {};
+
+  if(row === 0 || row === num_rows - 1) { return null; }
+
+  var new_row = row;
+  if(row_is_odd) { new_row++; }
+  else { new_row--; }
+  return { row: new_row, col: col }
 };
 
 // returns vertex object that a given road goes to
 BoardNavigator.prototype.getRoadDestination = function(current_location, direction) {
-  var num_rows = this.board_vertices.length;
+  var num_rows = this.vertices.length;
 
   //added this so that we can pass in a uniform location to all functions
   var row = current_location.row;
@@ -76,7 +123,7 @@ BoardNavigator.prototype.getRoadDestination = function(current_location, directi
     return new_vertex;
   }
   else if(direction === 'right') {
-    var last_col = this.board_vertices[row].length-1;
+    var last_col = this.vertices[row].length-1;
 
     // If water is to right of vertex, return null
     if(col===last_col){
