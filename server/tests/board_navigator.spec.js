@@ -16,7 +16,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('returns null when the row is even, in the bottom half of board, and col is 0', function() {
-      for(var row=(board.vertices.length/2) + 2, num_rows=board.vertices.length; row < num_rows; row += 2) {
+      for(var row= board.vertices.length/2, num_rows=board.vertices.length; row < num_rows; row += 2) {
         var new_vertex = board_navigator.getRoadDestination({ row: row, col: 0 }, 'left');
         expect(new_vertex).toBe(null);
       }
@@ -55,7 +55,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('subtracts one from the column when the starting row number is odd and in the top half of the board', function() {
-      for(var row=1, num_rows=board.vertices.length/2; row <= num_rows; row += 2) {
+      for(var row=1, num_rows=board.vertices.length/2; row < num_rows; row += 2) {
         for(var col=1, num_cols=board.vertices[row].length; col < num_cols; col++) {
           var new_vertex = board_navigator.getRoadDestination({ row: row, col: col }, 'left');
           expect(new_vertex.col).toEqual(col - 1);
@@ -64,7 +64,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('subtracts one from the column when the starting row number is even and in the bottom half of the board', function() {
-      for(var row=(board.vertices.length / 2) + 2, num_rows=board.vertices.length; row < num_rows; row += 2) {
+      for(var row = board.vertices.length / 2, num_rows=board.vertices.length; row < num_rows; row += 2) {
         for(var col=1, num_cols=board.vertices[row].length; col < num_cols; col++) {
           var new_vertex = board_navigator.getRoadDestination({ row: row, col: col }, 'left');
           expect(new_vertex.col).toEqual(col - 1);
@@ -82,7 +82,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('has the same column number when the starting row is even and in the top half of the board', function() {
-      for(var row=0, num_rows=board.vertices.length/2; row <= num_rows; row += 2) {
+      for(var row=0, num_rows=board.vertices.length/2; row < num_rows; row += 2) {
         for(var col=1, num_cols=board.vertices[row].length; col < num_cols; col++) {
           var new_vertex = board_navigator.getRoadDestination({ row: row, col: col }, 'left');
           expect(new_vertex.col).toEqual(col);
@@ -101,7 +101,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('returns null when the row is even, in the bottom half of board, and col is last in the row', function() {
-      for(var row=(board.vertices.length/2) + 2, num_rows=board.vertices.length; row < num_rows; row += 2) {
+      for(var row=board.vertices.length/2, num_rows=board.vertices.length; row < num_rows; row += 2) {
         var last_col = board.vertices[row].length - 1;
         var new_vertex = board_navigator.getRoadDestination({ row: row, col: last_col }, 'right');
         expect(new_vertex).toBe(null);
@@ -152,7 +152,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('adds one to the column when the starting row number is even and in the top half of the board', function() {
-      for(var row=0, num_rows=board.vertices.length/2; row <= num_rows; row += 2) {
+      for(var row=0, num_rows=board.vertices.length/2; row < num_rows; row += 2) {
         for(var col=0, num_cols=board.vertices[row].length - 1; col < num_cols; col++) {
           var new_vertex = board_navigator.getRoadDestination({ row: row, col: col }, 'right');
           expect(new_vertex.col).toEqual(col + 1);
@@ -161,7 +161,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('has the same column number when the starting row number is odd and in the top half of the board', function() {
-      for(var row=1, num_rows=board.vertices.length/2; row <= num_rows; row += 2) {
+      for(var row=1, num_rows=board.vertices.length/2; row < num_rows; row += 2) {
         for(var col=0, num_cols=board.vertices[row].length - 1; col < num_cols; col++) {
           var new_vertex = board_navigator.getRoadDestination({ row: row, col: col }, 'right');
           expect(new_vertex.col).toEqual(col);
@@ -170,7 +170,7 @@ describe('BoardNavigator class', function() {
     });
 
     it('has the same column number when the starting row number is even and in the bottom half of the board', function() {
-      for(var row=(board.vertices.length / 2) + 2, num_rows=board.vertices.length; row < num_rows; row += 2) {
+      for(var row = board.vertices.length / 2, num_rows=board.vertices.length; row < num_rows; row += 2) {
         for(var col=0, num_cols=board.vertices[row].length - 1; col < num_cols; col++) {
           var new_vertex = board_navigator.getRoadDestination({ row: row, col: col }, 'right');
           expect(new_vertex.col).toEqual(col);
