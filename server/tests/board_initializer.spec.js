@@ -60,8 +60,7 @@ describe('BoardInitializer class', function() {
           has_all_keys = has_all_keys && vertex.connections.hasOwnProperty('right');
           has_all_keys = has_all_keys && vertex.hasOwnProperty('adjacent_tiles');
           has_all_keys = has_all_keys && vertex.hasOwnProperty('owner');
-          has_all_keys = has_all_keys && vertex.hasOwnProperty('hasSettlementOrCity');
-          has_all_keys = has_all_keys && vertex.hasOwnProperty('land');
+          has_all_keys = has_all_keys && vertex.hasOwnProperty('property_type');
           has_all_keys = has_all_keys && vertex.hasOwnProperty('port');
         }
       }

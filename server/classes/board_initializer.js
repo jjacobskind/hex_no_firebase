@@ -34,8 +34,7 @@ BoardInitializer.prototype.createRow = function(num_elements) {
       },
       adjacent_tiles: [],
       owner: null,
-      hasSettlementOrCity: null,
-      land: true,
+      property_type: null,
       port: null
     });
   }
