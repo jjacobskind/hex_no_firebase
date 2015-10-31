@@ -9,6 +9,36 @@ var RoadBuilder = function(vertices, player, board_setup_phase) {
   }
 };
 
+RoadBuilder.prototype.placeRoad = function(start_vertex_coords, direction) {
+  var board_navigator = new BoardNavigator(this.vertices);
+  var end_vertex_coords   = board_navigator.getRoadDestination(start_vertex_coords, direction);
+  var start_vertex = this.vertices[start_vertex_coords.row][start_vertex_coords.col];
+  var end_vertex = this.vertices[end_vertex_coords.row][end_vertex_coords.col];
+
+  if(this.board_setup_phase && !this.isVertexMostRecent(start_vertex_coords, end_vertex_coords)) {
+    return { err: 'Must place road adjacent to most recent settlement during board setup phase!' };
+  }
+
+  if(!end_vertex) { return { err: 'You cannot build a road in that direction!' }; }
+  if(!!start_vertex.connections[direction]) { return { err: 'A road already exists in this location.' }; }
+
+  if(!this.playerIsAdjacentToSpace(start_vertex, end_vertex)) {
+    return { err: 'Road is not adjacent to player\'s current road, settlement, or city!' };
+  }
+
+  var inverse_direction = this.invertRoadDirection(direction);
+
+  start_vertex.connections[direction] = this.player.playerID;
+  end_vertex.connections[inverse_direction] = this.player.playerID;
+
+  return {
+    'location': start_vertex_coords,
+    'locationDirection': direction,
+    'destination': end_vertex_coords,
+    'destinationDirection': inverse_direction
+  };
+};
+
 RoadBuilder.prototype.findMostRecentSettlement = function() {
   var playerID = this.player.playerID;
   for(var row=0, num_rows=this.vertices.length; row < num_rows; row++) {
@@ -62,35 +92,5 @@ RoadBuilder.prototype.isVertexMostRecent = function() {
     if(match) { return true; }
   }
 }
-
-RoadBuilder.prototype.placeRoad = function(start_vertex_coords, direction) {
-  var board_navigator = new BoardNavigator(this.vertices);
-  var end_vertex_coords   = board_navigator.getRoadDestination(start_vertex_coords, direction);
-  var start_vertex = this.vertices[start_vertex_coords.row][start_vertex_coords.col];
-  var end_vertex = this.vertices[end_vertex_coords.row][end_vertex_coords.col];
-
-  if(this.board_setup_phase && !this.isVertexMostRecent(start_vertex_coords, end_vertex_coords)) {
-    return { err: 'Must place road adjacent to most recent settlement during board setup phase!' };
-  }
-
-  if(!end_vertex) { return { err: 'You cannot build a road in that direction!' }; }
-  if(!!start_vertex.connections[direction]) { return { err: 'A road already exists in this location.' }; }
-
-  if(!this.playerIsAdjacentToSpace(start_vertex, end_vertex)) {
-    return { err: 'Road is not adjacent to player\'s current road, settlement, or city!' };
-  }
-
-  var inverse_direction = this.invertRoadDirection(direction);
-
-  start_vertex.connections[direction] = this.player.playerID;
-  end_vertex.connections[inverse_direction] = this.player.playerID;
-
-  return {
-    'location': start_vertex_coords,
-    'locationDirection': direction,
-    'destination': end_vertex_coords,
-    'destinationDirection': inverse_direction
-  };
-};
 
 module.exports = RoadBuilder;
