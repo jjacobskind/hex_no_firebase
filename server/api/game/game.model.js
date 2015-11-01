@@ -7,7 +7,7 @@ var User = require('../user/user.model');
 
 var GameSchema = new Schema({
   areAllPlayersAdded: { type: Boolean, require: true, default: false },
-  boardIsSetUp: { type: Boolean, require: true, default: false },
+  boardSetupPhase: { type: Boolean, require: true, default: true },
   chatMessages: [{ name: String, text: String }],
   currentPlayer: { type: Number, require: true, default: 0 },
   diceNumber: Number,

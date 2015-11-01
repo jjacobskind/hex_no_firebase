@@ -19,9 +19,9 @@ var PlayerSchema = new Schema({
   },
   resourceTotal: { type: Number, required: true, default: 0 },
   constructionPool: {
-    cities:       { type: Number, required: true, default: 4 },
-    settlements:  { type: Number, required: true, default: 5 },
-    roads:        { type: Number, required: true, default: 15 }
+    city:       { type: Number, required: true, default: 4 },
+    settlement:  { type: Number, required: true, default: 5 },
+    road:        { type: Number, required: true, default: 15 }
   },
   devCards: {
     knight:       { type: Number, required: true, default: 0 },

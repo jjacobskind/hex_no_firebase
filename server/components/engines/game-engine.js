@@ -2,6 +2,8 @@ var GameBoardEngine = require('./board-engine');
 var GameBoard = GameBoardEngine.GameBoard;
 var Player = require('./player-engine').Player;
 
+ver ResourceManager = require('../../classes/resource_manager');
+
 var GameEngine = function(game, small_num, large_num) {
     this.players = [];
 
@@ -245,87 +247,6 @@ GameEngine.prototype.validatePlayerTurn = function(playerID, action){
   }
 };
 
-
-GameEngine.prototype.findLongestRoad = function() {
-  var longest_roads = [];
-  for(var row=0, num_rows=this.gameBoard.boardVertices.length; row<num_rows; row++){
-    for(var col=0, num_cols=this.gameBoard.boardVertices[row].length; col<num_cols; col++){
-      var road = this.gameBoard.followRoad([row, col]);
-      if(longest_roads.length===0 || road.length > longest_roads[0].length){
-        longest_roads=[road];
-      }
-      else if(longest_roads.length>0 && road.length===longest_roads[0].length) {
-        // Need to do something here so that ties don't change possessor of points for longest road
-        longest_roads.push(road);
-      }
-    }
-  }
-
-  // Return null if there aren't any roads yet
-  if(longest_roads[0].length===0){
-    return null;
-  }
-
-  // Remove redundant longest roads for each player
-  // After this loop, 'owner' will store the owner of one of the longest roads, but will only be used if there is only one longest road
-  var counted_players = [];
-  for(var i=0, len=longest_roads.length; i<len;i++){
-    var vertex1 = longest_roads[i][0];
-    var vertex2 = longest_roads[i][1];
-    for(var key in this.gameBoard.boardVertices[0][0].connections){
-      var check_vert = this.gameBoard.getRoadDestination(vertex1, key);
-      if(!!check_vert && check_vert[0]===vertex2[0] && check_vert[1]===vertex2[1]){
-        var owner = this.gameBoard.boardVertices[vertex1[0]][vertex1[1]].connections[key];
-        if(counted_players.indexOf(owner)===-1) {
-          counted_players.push(owner);
-        } else {
-          longest_roads.splice(i, 1);
-          i--;
-          len--;
-        }
-      }
-    }
-  }
-
-  var longest_road_length = longest_roads[0].length-1;   //number of roads is always one less than the number of vertices along it
-
-  // Check if this is the first legitimate longest road of the game
-  if(!this.longestRoad && longest_roads.length===1 && longest_road_length>=5) {
-    this.longestRoad = {road_length: longest_road_length, owner: owner};  
-    this.players[owner].playerQualities.privatePoints+=2;
-    this.players[owner].hasLongestRoad=true;
-  }
-  // Check if this longest road beats the current longest road and whether points need to be transferred
-  else if(!!this.longestRoad && longest_roads.length===1 && longest_road_length>this.longestRoad.road_length) {
-    if(owner!==this.longestRoad.owner){
-      this.players[owner].playerQualities.privatePoints+=2;
-      this.players[owner].hasLongestRoad=true;
-
-      this.players[this.longestRoad.owner].playerQualities.privatePoints-=2;
-      this.players[this.longestRoad.owner].hasLongestRoad = false;
-    }
-    this.longestRoad = {road_length: longest_road_length, owner: owner};
-  }
-  // check for when the longest road is split by a settlement so that there is no longer a valid longest road
-  else if(!!this.longestRoad && this.longestRoad.length>longest_road_length && (longest_roads.length>1 || longest_road_length<5) ){
-    this.players[this.longestRoad.owner].playerQualities.privatePoints-=2;
-    this.players[this.longestRoad.owner].hasLongestRoad = false;
-    this.longestRoad = null;
-  }
-  // check if there is a valid longest road after the longest road has been split by a settlement
-  // WHEN THIS WORKS, COMBINE INTO SECOND CONDITIONAL ABOVE!!!
-  else if(!!this.longestRoad && this.longestRoad.length>longest_road_length && longest_roads.length===1 && longest_road_length>=5 ){
-    if(owner!==this.longestRoad.owner){
-      this.players[owner].playerQualities.privatePoints+=2;
-      this.players[owner].hasLongestRoad=true;
-
-      this.players[this.longestRoad.owner].playerQualities.privatePoints-=2;
-      this.players[this.longestRoad.owner].hasLongestRoad = false;
-    }
-    this.longestRoad = {road_length: longest_road_length, owner: owner};
-  }
-};
-
 // Finds the index of the first instance of a nested array in its parent array
   // ex: can use to find index of [1, 2] in array [ [0, 1], [3, 4], [1, 2]]
     // indexOf doesn't do this
@@ -347,48 +268,42 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
   return -1;
 };
 
-GameEngine.prototype.buildSettlement = function(playerID, location) {
+GameEngine.prototype.buildVertex = function(playerID, location) {
   var isPlayerTurn = this.validatePlayerTurn(playerID, 'build');
   if(isPlayerTurn !== true) { return isPlayerTurn; }
+  var vertex_builder = new VertexBuilder(this.vertices, this.players[playerID], location, this.boardSetupPhase);
+  if(!!vertex_builder.error) { return vertex_builder.error; }
+  var resource_manager = new ResourceManager(this);
+  var resources_available = resource_manager.areResourcesAvailable(playerID, vertex_builder.property_type_to_build);
+  if(resources_available !== true) { return resources_available; }
+  return vertex_builder.build();
 
-  var player = this.players[playerID];
-  if(String(this.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity) === "settlement"){
-    return this.upgradeSettlementToCity(playerID, location);
-  }
-  else if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
-    return { err: "Not enough resources to build a settlement!" };
-  }
-
-  if(Math.floor(this.turn / this.players.length) === 1) {
-    var itemsToDistribute = this.gameBoard.boardVertices[location[0]][location[1]].adjacent_tiles;
-    itemsToDistribute.forEach(function(item){
-      player.resources[item.resource]++
-    });
-  }
-  return this.gameBoard.placeSettlement(player, location);
+  // return road_builder(location, direction);
+  //
+  // var player = this.players[playerID];
+  //
+  // if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
+  //   return { err: "Not enough resources to build a settlement!" };
+  // }
+  //
+  // if(Math.floor(this.turn / this.players.length) === 1) {
+  //   var itemsToDistribute = this.gameBoard.boardVertices[location[0]][location[1]].adjacent_tiles;
+  //   itemsToDistribute.forEach(function(item){
+  //     player.resources[item.resource]++
+  //   });
+  // }
+  // return this.gameBoard.placeSettlement(player, location);
 };
 
 GameEngine.prototype.buildRoad = function(playerID, location, direction) {
   var isPlayerTurn = this.validatePlayerTurn(playerID, 'buildRoad');
   if(isPlayerTurn !== true) { return isPlayerTurn; }
+  var resource_manager = new ResourceManager(this);
+  var resources_available = resource_manager.areResourcesAvailable(playerID, 'road');
+  if(resources_available !== true) { return resources_available; }
 
-  var player = this.players[playerID];
-  if ((player.resources.lumber < 1 || player.resources.brick < 1) &&
-    (this.turn >= (this.players.length * 2))) {
-    return {err: "You don't have enough resources to build a road!"};
-  }
-  return this.gameBoard.placeRoad(player,location,direction);
-};
-
-GameEngine.prototype.upgradeSettlementToCity = function(playerID, location) {
-  var player = this.players[playerID];
-  if (player.resources.grain < 2 || player.resources.ore < 3) {
-    return {err: 'Not enough resources to build city!'};
-  }
-
-  player.resources.grain -= 2;
-  player.resources.ore -= 3;
-  return this.gameBoard.upgradeSettlementToCity(player, location);
+  var road_builder = new RoadBuilder(this.vertices, this.players[playerID], this.boardSetupPhase);
+  return road_builder(location, direction);
 };
 
 GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
