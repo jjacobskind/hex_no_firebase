@@ -42,17 +42,17 @@ VertexBuilder.prototype.isVertexBuildable = function() {
   var vertex = this.vertices[vertex_coords.row][vertex_coords.col];
   var current_property_type = vertex.property_type, owner = vertex.owner;
 
-  if(!vertex) { this.error =  'This vertex does not exist!'; return false; }
-  if (owner !== null && owner !== this.player.playerID) { this.error = 'Another player owns a ' + vertex.property_type + ' at this location!'; return false; }
-  if(this.isAdjacentVertexOwned()) { this.error = 'Cannot build next to another settlement or city!'; return false; }
-  if(!this.board_setup_phase && !this.playerOwnsAdjacentRoad()) { this.error = 'You must build a road to this location before you can build on it.'; return false; }
+  if(!vertex) { this.setError('This vertex does not exist!'); return false; }
+  if (owner !== null && owner !== this.player.playerID) { this.setError('Another player owns a ' + vertex.property_type + ' at this location!'); return false; }
+  if(this.isAdjacentVertexOwned()) { this.setError('Cannot build next to another settlement or city!'); return false; }
+  if(!this.board_setup_phase && !this.playerOwnsAdjacentRoad()) { this.setError('You must build a road to this location before you can build on it.'); return false; }
   if(owner === this.player.playerID) {
       switch(current_property_type) {
         case 'city':
-           this.error = 'You already own a city at this location!';
+           this.setError('You already own a city at this location!');
            return false;
         case 'settlement':
-          if(this.board_setup_phase) { this.error = 'Must build on an unoccupied location during the board setup phase!'; return false; }
+          if(this.board_setup_phase) { this.setError('Must build on an unoccupied location during the board setup phase!'); return false; }
       }
   }
   return true;
@@ -64,5 +64,9 @@ VertexBuilder.prototype.determinePropertyTypeToBuild = function() {
   if(vertex_owner === this.player.playerID) { return 'city'; }
   return 'settlement';
 }
+
+VertexBuilder.prototype.setError = function(error_string) {
+  this.error = { err: error_string };
+};
 
 module.exports = VertexBuilder;

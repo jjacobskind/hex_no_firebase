@@ -11,14 +11,8 @@ ResourceManager.prototype.areResourcesAvailable = function(playerID, purchase_ty
 
 ResourceManager.prototype.playerHasEnoughResourceCards = function(playerID, purchase_type) {
   var player = this.game.players[playerID];
-  var cost_map = {
-    settlement: { lumber: 1, brick: 1, wool: 1, grain: 1 },
-    city: { ore: 3, grain: 2 },
-    road: { brick: 1, lumber: 1 },
-    development_card: { grain: 1, ore: 1, wool: 1 }
-  }
 
-  var purchase_price = cost_map[purchase_type];
+  var purchase_price = this.costMap[purchase_type];
   var error_prefix = 'Not enough resources to build a ';
   if(purchase_type === 'development_card') { error_prefix = 'Not enough resources to buy a '; }
 
@@ -26,6 +20,13 @@ ResourceManager.prototype.playerHasEnoughResourceCards = function(playerID, purc
     if(player.resources[key] < purchase_price[key]) { return { err: error_prefix + purchase_type + '!' } }
   }
   return true;
+};
+
+ResourceManager.prototype.costMap = {
+  settlement: { lumber: 1, brick: 1, wool: 1, grain: 1 },
+  city: { ore: 3, grain: 2 },
+  road: { brick: 1, lumber: 1 },
+  development_card: { grain: 1, ore: 1, wool: 1 }
 };
 
 ResourceManager.prototype.playerHasEnoughTokens = function(playerID, purchase_type) {
@@ -36,6 +37,13 @@ ResourceManager.prototype.playerHasEnoughTokens = function(playerID, purchase_ty
 ResourceManager.prototype.developmentCardsAvailable = function() {
   cards_available = this.game.development_card_deck.length > 0;
   return cards_available || { err: 'All development cards have been purchased!' }
+};
+
+ResourceManager.prototype.chargeForPurchase = function(playerId, purchase_type) {
+  var cost = this.costMap[purchase_type];
+  for(var resource in cost) {
+    this.game.players[playerID].resources[resource] -= cost[resources];
+  }
 };
 
 module.exports = ResourceManager;

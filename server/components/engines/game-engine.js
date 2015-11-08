@@ -271,12 +271,16 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
 GameEngine.prototype.buildVertex = function(playerID, location) {
   var isPlayerTurn = this.validatePlayerTurn(playerID, 'build');
   if(isPlayerTurn !== true) { return isPlayerTurn; }
+
   var vertex_builder = new VertexBuilder(this.vertices, this.players[playerID], location, this.boardSetupPhase);
   if(!!vertex_builder.error) { return vertex_builder.error; }
   var resource_manager = new ResourceManager(this);
   var resources_available = resource_manager.areResourcesAvailable(playerID, vertex_builder.property_type_to_build);
   if(resources_available !== true) { return resources_available; }
-  return vertex_builder.build();
+  var build_data = vertex_builder.build();
+  if(build_data.hasOwnProperty('err')) { return return_data; }
+  resource_manager.chargeForPurchase(vertex_builder.property_type_to_build);
+  return build_data;
 
   // return road_builder(location, direction);
   //
