@@ -1,7 +1,9 @@
 var Board = require('./board-engine').Board;
 var Player = require('./player-engine').Player;
-
-ver ResourceManager = require('../../classes/resource_manager');
+var PhaseManager = require('../../classes/phase_manager');
+var RoadBuilder = require('../../classes/road_builder');
+var VertexBuilder = require('../../classes/vertex_builder');
+var ResourceManager = require('../../classes/resource_manager');
 
 var GameEngine = function(game, small_num, large_num) {
     this.players = [];
@@ -268,7 +270,8 @@ GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
 };
 
 GameEngine.prototype.buildVertex = function(playerID, location) {
-  var isPlayerTurn = this.validatePlayerTurn(playerID, 'build');
+  var phase_manager = new PhaseManager(this, this.players[playerID]);
+  var isPlayerTurn = phase_manager.playerActionValid('buildVertex');
   if(isPlayerTurn !== true) { return isPlayerTurn; }
 
   var vertex_builder = new VertexBuilder(this.vertices, this.players[playerID], location, this.boardSetupPhase);
