@@ -64,8 +64,8 @@ var injectSpecialData = function(key, returnObj, gameObj) {
 // persists game changes
 var updateAndSaveGame = function(game, gameObj, properties) {
 	game.players = gameObj.players;
-	game.gameBoard.boardVertices = gameObj.gameBoard.boardVertices;
-	game.gameBoard.boardTiles = gameObj.gameBoard.boardTiles;
+	game.board.vertices = gameObj.board.vertices;
+	game.board.tiles = gameObj.board.tiles;
 
 	properties.forEach(function(key) {
 		game[key] = gameObj[key];

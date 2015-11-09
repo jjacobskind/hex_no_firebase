@@ -1,5 +1,4 @@
-var GameBoardEngine = require('./board-engine');
-var GameBoard = GameBoardEngine.GameBoard;
+var Board = require('./board-engine').Board;
 var Player = require('./player-engine').Player;
 
 ver ResourceManager = require('../../classes/resource_manager');
@@ -9,16 +8,16 @@ var GameEngine = function(game, small_num, large_num) {
 
     // If a game object is not passed in, create a new game (Mongo schema will add properties with default values)
     if(!game){
-      this.gameBoard = new GameBoard(this, null, small_num, large_num);
+      this.board = new Board(this, null, small_num, large_num);
 
     // Otherwise, populate this GameEngine object with the properties of game
     } else {
       for(var key in game){
-        if(key!=="gameBoard" && key!=="players"){
+        if(key !== 'board' && key!=="players"){
           this[key] = game[key];
         }
       }
-      this.gameBoard = new GameBoard(this, game.gameBoard);
+      this.board = new Board(this, game.board);
       for(var i=0, len=game.players.length; i<len; i++){
         this.players.push(new Player(game.players[i]));
       }
@@ -75,26 +74,26 @@ GameEngine.prototype.robResourceCards = function() {
 };
 
 GameEngine.prototype.distributeResources = function(sumDice) {
-  var boardVertices = this.gameBoard.boardVertices;
+  var vertices = this.board.vertices;
   var players = this.players;
 
   var resourceArray = [];
   var boardSnapShot = {};
 
   // loop through the board vertices
-  for (var row = 0, num_rows = boardVertices.length; row < num_rows; row++) {
-    for (var col = 0, num_cols = boardVertices[row].length; col<num_cols; col++) {
-      if (boardVertices[row][col].owner !== null) {
+  for (var row = 0, num_rows = vertices.length; row < num_rows; row++) {
+    for (var col = 0, num_cols = vertices[row].length; col<num_cols; col++) {
+      if (vertices[row][col].owner !== null) {
         var resourcesToDistribute = 1;
         // check adjacent tiles if they contain a settlement or a city
-        if (boardVertices[row][col].settlementOrCity === 'city'){
+        if (vertices[row][col].settlementOrCity === 'city'){
           resourcesToDistribute++;
         }
 
         // build an array of resources that need to be distributed
-        boardVertices[row][col].adjacent_tiles.forEach(function (item) {
+        vertices[row][col].adjacent_tiles.forEach(function (item) {
           if (item.chit === sumDice) {
-            resourceArray.push({resourceCount: resourcesToDistribute, resource: item.resource, player: boardVertices[row][col].owner});
+            resourceArray.push({resourceCount: resourcesToDistribute, resource: item.resource, player: vertices[row][col].owner});
           }
         });
       }
@@ -159,7 +158,7 @@ GameEngine.prototype.buyDevelopmentCard = function(player) {
     player.resources.wool--;
     player.resources.grain--;
     player.resources.ore--;
-    this.gameBoard.getDevelopmentCard(player);
+    this.board.getDevelopmentCard(player);
   }
 };
 
@@ -291,12 +290,12 @@ GameEngine.prototype.buildVertex = function(playerID, location) {
   // }
   //
   // if(Math.floor(this.turn / this.players.length) === 1) {
-  //   var itemsToDistribute = this.gameBoard.boardVertices[location[0]][location[1]].adjacent_tiles;
+  //   var itemsToDistribute = this.board.vertices[location[0]][location[1]].adjacent_tiles;
   //   itemsToDistribute.forEach(function(item){
   //     player.resources[item.resource]++
   //   });
   // }
-  // return this.gameBoard.placeSettlement(player, location);
+  // return this.board.placeSettlement(player, location);
 };
 
 GameEngine.prototype.buildRoad = function(playerID, location, direction) {
@@ -313,7 +312,7 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
 GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
   var isPlayerTurn = this.validatePlayerTurn(playerID, 'moveRobber');
   if(isPlayerTurn === true) {
-    return this.gameBoard.moveRobber(destination, origin);
+    return this.board.moveRobber(destination, origin);
   } else {
     return isPlayerTurn;
   }

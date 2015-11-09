@@ -57,9 +57,9 @@ var instantiateGame = function(tester, params) {
       break;
   }
 
-  new_game.gameBoard = {
-    boardTiles: new_game.gameBoard.boardTiles,
-    boardVertices: new_game.gameBoard.boardVertices
+  new_game.board = {
+    tiles: new_game.board.tiles,
+    vertices: new_game.board.vertices
   };
   new_game.chatMessages = [];
   return configureGame(new_game, tester, params);

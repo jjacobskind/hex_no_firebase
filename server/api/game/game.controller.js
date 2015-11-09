@@ -46,9 +46,9 @@ exports.create = function(req, res) {
       break;
   }
 
-  new_game.gameBoard = {
-    boardTiles: new_game.gameBoard.boardTiles,
-    boardVertices: new_game.gameBoard.boardVertices
+  new_game.board = {
+    tiles: new_game.board.tiles,
+    vertices: new_game.board.vertices
   };
 
   Game.create(new_game, function(err, game) {

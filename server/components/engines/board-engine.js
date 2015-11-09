@@ -1,23 +1,23 @@
 var BoardInitializer = require('../../classes/board_initializer');
 
-var GameBoard = function(game, board, small_num, large_num) {
+var Board = function(game, board, small_num, large_num) {
   this.game = game;
   if(!board) {
     var new_board = new BoardInitializer(small_num, large_num);
-    this.boardTiles = new_board.tiles;
-    this.boardVertices = new_board.vertices;
+    this.tiles = new_board.tiles;
+    this.vertices = new_board.vertices;
   } else {
-    this.boardTiles = board.boardTiles;
-    this.boardVertices = board.boardVertices;
+    this.tiles = board.tiles;
+    this.vertices = board.vertices;
     for(var key in board){
-      if(key!=="boardTiles" && board!=="boardVertices"){
+      if(key !== 'tiles' && board !== 'vertices'){
         this[key] = board[key];
       }
     }
   }
 };
 
-GameBoard.prototype.getDevelopmentCard = function(player) {
+Board.prototype.getDevelopmentCard = function(player) {
   var deck = {
     size: 25,
     choiceCeiling: [14,19,21,23,25]
@@ -49,11 +49,11 @@ GameBoard.prototype.getDevelopmentCard = function(player) {
   currentGameData.child('players').set(JSON.stringify(game.players));
 };
 
-GameBoard.prototype.moveRobber = function(destination, origin) {
+Board.prototype.moveRobber = function(destination, origin) {
   if(!origin) {
-    for(var row=0, num_rows=this.boardTiles.length; row<num_rows; row++){
-      for(var col=0, num_cols=this.boardTiles[row].length; col<num_cols; col++){
-        if(this.boardTiles[row][col].robber===true){
+    for(var row=0, num_rows=this.tiles.length; row<num_rows; row++){
+      for(var col=0, num_cols=this.tiles[row].length; col<num_cols; col++){
+        if(this.tiles[row][col].robber===true){
           origin = [row, col];
         }
       }
@@ -65,16 +65,16 @@ GameBoard.prototype.moveRobber = function(destination, origin) {
   if(old_row===new_row && old_col===new_col){
     return { err: "You must move the Robber to another tile!" };
   }
-  else if(this.boardTiles[new_row][new_col].robber === true) {
+  else if(this.tiles[new_row][new_col].robber === true) {
     return { err: "Another robber already occupies that tile!" };
   } else {
-    this.boardTiles[old_row][old_col].robber=false;
-    this.boardTiles[new_row][new_col].robber=true;
+    this.tiles[old_row][old_col].robber=false;
+    this.tiles[new_row][new_col].robber=true;
     this.game.robberMoveLockdown = false;
     return { destination: destination, origin: origin };
   }
 };
 
 module.exports = {
-  GameBoard: GameBoard
+  Board: Board
 };

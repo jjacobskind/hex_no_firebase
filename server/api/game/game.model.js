@@ -27,10 +27,10 @@ var GameSchema = new Schema({
   turn: { type: Number, required: true, default: 0 },
 
   // BOARD
-  gameBoard: {
+  board: {
     boardIsSetup: { type: Boolean, require: true, default: false },
-    boardTiles: { type: [Schema.Types.Mixed], required: true },
-    boardVertices: { type: [Schema.Types.Mixed], required: true }
+    tiles: { type: [Schema.Types.Mixed], required: true },
+    vertices: { type: [Schema.Types.Mixed], required: true }
   },
 
   // PLAYERS
@@ -121,8 +121,8 @@ var allSlotsFilled = function(game) {
   if(game.areAllPlayersAdded) { return true; }
 
   var num_tiles = 0;
-  for(var i=0, len=game.gameBoard.boardTiles.length; i<len; i++) {
-    num_tiles+= game.gameBoard.boardTiles[i].length;
+  for(var i=0, len=game.board.tiles.length; i<len; i++) {
+    num_tiles+= game.board.tiles[i].length;
   }
 
   var max_players = Math.round(num_tiles/5);
