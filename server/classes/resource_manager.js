@@ -10,6 +10,7 @@ ResourceManager.prototype.areResourcesAvailable = function(playerID, purchase_ty
 };
 
 ResourceManager.prototype.playerHasEnoughResourceCards = function(playerID, purchase_type) {
+  if(this.game.boardSetupPhase) { return true; }
   var player = this.game.players[playerID];
 
   var purchase_price = this.costMap[purchase_type];
@@ -40,6 +41,7 @@ ResourceManager.prototype.developmentCardsAvailable = function() {
 };
 
 ResourceManager.prototype.chargeForPurchase = function(playerId, purchase_type) {
+  if(this.game.boardSetupPhase) { return null; }
   var cost = this.costMap[purchase_type];
   for(var resource in cost) {
     this.game.players[playerID].resources[resource] -= cost[resources];
