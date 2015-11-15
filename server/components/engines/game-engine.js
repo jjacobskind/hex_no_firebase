@@ -15,7 +15,7 @@ var GameEngine = function(game, small_num, large_num) {
     // Otherwise, populate this GameEngine object with the properties of game
     } else {
       for(var key in game){
-        if(key !== 'board' && key!=="players"){
+        if(key !== 'board' && key !== 'players') {
           this[key] = game[key];
         }
       }
@@ -31,22 +31,23 @@ FUNCTIONS THAT ARE ONLY NEEDED ON THE BACKEND ENGINE
 *************************************************/
 
 GameEngine.prototype.rollDice = function(playerID) {
-    var turnValidation = this.validatePlayerTurn(playerID, "roll");
-    if(turnValidation!==true) { return turnValidation; }
+  var phase_manager = new PhaseManager(this, this.players[playerID]);
+  var isPlayerTurn = phase_manager.playerActionValid('roll');
+  if(isPlayerTurn !== true) { return isPlayerTurn; }
 
-    var sumDice = Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6);
-    this.diceNumber = sumDice;
-    this.diceRolled = true;
+  var sumDice = Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6);
+  this.diceNumber = sumDice;
+  this.diceRolled = true;
 
-    if(sumDice!==7) {
-      this.distributeResources(sumDice);
-    } else {
-      // Any players with more than 7 cards must discard half of their hand, player must move the robber and pick a card from an adjacent player
-      // No other actions can take place until all three of these actions have occurred
-      this.robberMoveLockdown = true;
-      this.robResourceCards();
-    }
-    return sumDice;
+  if(sumDice!==7) {
+    this.distributeResources(sumDice);
+  } else {
+    // Any players with more than 7 cards must discard half of their hand, player must move the robber and pick a card from an adjacent player
+    // No other actions can take place until all three of these actions have occurred
+    this.robberMoveLockdown = true;
+    this.robResourceCards();
+  }
+  return sumDice;
 };
 
 // Discards half the hand of any player with more than 7 cards
@@ -124,32 +125,32 @@ GameEngine.prototype.tradeResources = function(firstPlayer, firstResource, secon
 };
 
 GameEngine.prototype.addPlayer = function() {
-    if (this.areAllPlayersAdded === false) {
-      var id = this.players.length;
-      if (id > 5) {
-          return {err: "Sorry, no more than 6 players!"};
-      }
-      this.players.push(new Player(id));
-      return {'players': JSON.stringify(this.players)};
+  if (this.areAllPlayersAdded === false) {
+    var id = this.players.length;
+    if (id > 5) {
+        return {err: "Sorry, no more than 6 players!"};
     }
-    else if (this.areAllPlayersAdded === true) {
-        return {err: "Game is already started!"};
-    }
+    this.players.push(new Player(id));
+    return {'players': JSON.stringify(this.players)};
+  }
+  else if (this.areAllPlayersAdded === true) {
+      return {err: "Game is already started!"};
+  }
 };
 
 GameEngine.prototype.validatePlayerCount = function() {
-    this.areAllPlayersAdded = true;
-    return "All players have been added!"
+  this.areAllPlayersAdded = true;
+  return "All players have been added!"
 };
 
 GameEngine.prototype.shuffle = function(array){
-   for (var i = array.length - 1; i > 0; i--) {
-       var j = Math.floor(Math.random() * (i + 1));
-       var temp = array[i];
-       array[i] = array[j];
-       array[j] = temp;
-   }
-   return array;
+  for (var i = array.length - 1; i > 0; i--) {
+     var j = Math.floor(Math.random() * (i + 1));
+     var temp = array[i];
+     array[i] = array[j];
+     array[j] = temp;
+  }
+  return array;
 };
 
 GameEngine.prototype.buyDevelopmentCard = function(player) {
@@ -170,17 +171,18 @@ FUNCTIONS THAT SHOULD BE INCLUDED ON THE FRONT END ENGINE
 
 // Runs when player tries to pass the turn to the next player
 GameEngine.prototype.advancePlayerTurn = function(playerID) {
-  var turnValidation = this.validatePlayerTurn(playerID, "advanceTurn");
-  if(turnValidation!==true){ return turnValidation; }
+  var phase_manager = new PhaseManager(this, this.players[playerID]);
+  var isPlayerTurn = phase_manager.playerActionValid('advanceTurn');
+  if(isPlayerTurn !== true) { return isPlayerTurn; }
+
   this.turn++;
-  if(this.turn>=this.players.length*2) { this.boardIsSetUp = true; }
+  if(this.turn >= this.players.length * 2) { this.boardSetupPhase = false; }
   this.diceRolled = false;
   this.calculatePlayerTurn();
   return this.currentPlayer;
 }
 
 GameEngine.prototype.calculatePlayerTurn = function() {
-
  var currentTurn = this.turn, playerLength = this.players.length;
 
  if (this.turn <= playerLength - 1) {
@@ -206,67 +208,6 @@ GameEngine.prototype.calculatePlayerTurn = function() {
    this.boardIsSetUp = true;
    this.currentPlayer = currentTurn % playerLength;
  }
-}
-
-
-// Returns a boolean value indicating whether the player is allowed to take this action at this point in the game
-GameEngine.prototype.validatePlayerTurn = function(playerID, action){
-
-  // Conditions that apply to nearly all game actions
-  if (playerID!==this.currentPlayer) { return {err: "It is not currently your turn!"}; }
-  if(this.robberMoveLockdown && action!=="moveRobber") { return {err: "You must move the robber before taking any other action!"}; }
-  if(this.roadCardLockdown && action!=="buildRoad") { return {err: "You must finish building both roads before taking any further action!"}; }
-
-  switch(action){
-    case "roll":
-      if(!this.boardIsSetUp) { return {err: "You may not roll during the board setup phase!"}; }
-      else if(this.diceRolled) { return {err: "You may only roll once per turn!"}; }
-      else { return true; }
-    case "buildRoad":
-      if(!this.diceRolled && this.boardIsSetUp) { return { err: "You must roll the dice before you can build!" }; }
-      else if (this.boardIsSetUp === false && Math.floor(this.turn / this.players.length) !== this.players[playerID].playerQualities.roadSegments) { return { err: "You may only build one road per turn during the board setup phase!" }; }
-      return true;
-    case "build":
-      if(!this.diceRolled && this.boardIsSetUp) { return { err: "You must roll the dice before you can build!" }; }
-      else if (this.boardIsSetUp === false && Math.floor(this.turn / this.players.length) !== this.players[playerID].playerQualities.settlements) { return { err: "You may only build one settlement per turn during the board setup phase!" }; }
-      return true;
-    case "trade":
-      return (this.diceRolled===true && this.robberMoveLockdown===false);
-    case "moveRobber":
-      return (this.robberMoveLockdown);
-    case "advanceTurn":
-      var playersSettlements = this.players[playerID].playerQualities.settlements;
-      var playersRoads = this.players[playerID].playerQualities.roadSegments;
-
-      if(this.boardIsSetUp===false) {
-        if(playersSettlements===playersRoads && playersRoads===Math.ceil((this.turn+1)/this.players.length)) { return true; }
-        else { return {err: "You must build one settlement and one road during the board setup phase!"}; }
-      } else if(!this.diceRolled) { return { err: "You need to roll the dice before ending your turn!" }; }
-      else { return true; }
-    default:
-      return false;
-  }
-};
-
-// Finds the index of the first instance of a nested array in its parent array
-  // ex: can use to find index of [1, 2] in array [ [0, 1], [3, 4], [1, 2]]
-    // indexOf doesn't do this
-GameEngine.prototype.getNestedArrayIndex = function(search_arr, find_arr) {
-  for(var i=0, len=search_arr.length; i<len; i++) {
-    var len2=find_arr.length;
-    if(len2===search_arr[i].length){
-      var match=true;
-      for(var k=0; k<len2 && match; k++){
-        if(search_arr[i][k]!==find_arr[k]) {
-          match=false;
-        }
-      }
-      if(match) {
-        return i;
-      }
-    }
-  }
-  return -1;
 };
 
 GameEngine.prototype.buildVertex = function(playerID, location) {
@@ -283,27 +224,13 @@ GameEngine.prototype.buildVertex = function(playerID, location) {
   if(build_data.hasOwnProperty('err')) { return return_data; }
   resource_manager.chargeForPurchase(vertex_builder.property_type_to_build);
   return build_data;
-
-  // return road_builder(location, direction);
-  //
-  // var player = this.players[playerID];
-  //
-  // if ((player.resources.wool < 1 || player.resources.grain < 1 || player.resources.lumber < 1 || player.resources.brick < 1) && (this.turn >= this.players.length * 2)) {
-  //   return { err: "Not enough resources to build a settlement!" };
-  // }
-  //
-  // if(Math.floor(this.turn / this.players.length) === 1) {
-  //   var itemsToDistribute = this.board.vertices[location[0]][location[1]].adjacent_tiles;
-  //   itemsToDistribute.forEach(function(item){
-  //     player.resources[item.resource]++
-  //   });
-  // }
-  // return this.board.placeSettlement(player, location);
 };
 
 GameEngine.prototype.buildRoad = function(playerID, location, direction) {
-  var isPlayerTurn = this.validatePlayerTurn(playerID, 'buildRoad');
+  var phase_manager = new PhaseManager(this, this.players[playerID]);
+  var isPlayerTurn = phase_manager.playerActionValid('buildRoad');
   if(isPlayerTurn !== true) { return isPlayerTurn; }
+
   var resource_manager = new ResourceManager(this);
   var resources_available = resource_manager.areResourcesAvailable(playerID, 'road');
   if(resources_available !== true) { return resources_available; }
@@ -313,13 +240,11 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
 };
 
 GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
-  var isPlayerTurn = this.validatePlayerTurn(playerID, 'moveRobber');
-  if(isPlayerTurn === true) {
-    return this.board.moveRobber(destination, origin);
-  } else {
-    return isPlayerTurn;
-  }
-};
+  var phase_manager = new PhaseManager(this, this.players[playerID]);
+  var isPlayerTurn = phase_manager.playerActionValid('moveRobber');
+  if(isPlayerTurn !== true) { return isPlayerTurn; }
 
+  return this.board.moveRobber(destination, origin);
+};
 
 exports.GameEngine = GameEngine;
