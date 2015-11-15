@@ -139,6 +139,4 @@ LongestRoadFinder.prototype.getNestedArrayIndex = function(search_arr, find_arr)
   return -1;
 };
 
-if(typeof require !== 'undefined') {
-  module.exports = LongestRoadFinder;
-}
+module.exports = LongestRoadFinder;

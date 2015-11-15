@@ -1,6 +1,4 @@
-if(typeof require !== 'undefined') {
-  var BoardNavigator = require('./board_navigator');
-}
+var BoardNavigator = require('./board_navigator');
 
 var RoadBuilder = function(vertices, player, board_setup_phase) {
   this.vertices = vertices;
@@ -95,6 +93,4 @@ RoadBuilder.prototype.isVertexMostRecent = function() {
   }
 }
 
-if(typeof require !== 'undefined') {
-  module.exports = RoadBuilder;
-}
+module.exports = RoadBuilder;

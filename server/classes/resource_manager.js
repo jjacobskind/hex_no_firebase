@@ -48,6 +48,4 @@ ResourceManager.prototype.chargeForPurchase = function(playerId, purchase_type) 
   }
 };
 
-if(typeof require !== 'undefined') {
-  module.exports = ResourceManager;
-}
+module.exports = ResourceManager;

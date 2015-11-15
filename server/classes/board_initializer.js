@@ -1,7 +1,5 @@
-if(typeof require !== 'undefined') {
-  var GameHelpers = require('../server/modules/game_helpers');
-  var BoardNavigator = require('./board_navigator.js');
-}
+var GameHelpers = require('../modules/game_helpers');
+var BoardNavigator = require('./board_navigator.js');
 
 var BoardInitializer = function(small_num, large_num) {
   this.small_num = small_num;
@@ -245,6 +243,4 @@ BoardInitializer.prototype.addPorts = function() {
   this.assignPorts(border_vertices_array);
 };
 
-if(typeof require !== 'undefined') {
-  module.exports = BoardInitializer;
-}
+module.exports = BoardInitializer;

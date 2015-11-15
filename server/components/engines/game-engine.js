@@ -1,9 +1,9 @@
 var Board = require('./board-engine').Board;
 var Player = require('./player-engine').Player;
-var PhaseManager = require('../../../game_classes/phase_manager');
-var RoadBuilder = require('../../../game_classes/road_builder');
-var VertexBuilder = require('../../../game_classes/vertex_builder');
-var ResourceManager = require('../../../game_classes/resource_manager');
+var PhaseManager = require('../../classes/phase_manager');
+var RoadBuilder = require('../../classes/road_builder');
+var VertexBuilder = require('../../classes/vertex_builder');
+var ResourceManager = require('../../classes/resource_manager');
 
 var GameEngine = function(game, small_num, large_num) {
     this.players = [];

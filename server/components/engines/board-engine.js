@@ -1,4 +1,4 @@
-var BoardInitializer = require('../../../game_classes/board_initializer');
+var BoardInitializer = require('../../classes/board_initializer');
 
 var Board = function(game, board, small_num, large_num) {
   this.game = game;

@@ -1,6 +1,6 @@
-var BoardInitializer = require('../../game_classes/board_initializer');
-var BoardNavigator = require('../../game_classes/board_navigator');
-var RoadBuilder = require ('../../game_classes/road_builder');
+var BoardInitializer = require('../classes/board_initializer');
+var BoardNavigator = require('../classes/board_navigator');
+var RoadBuilder = require ('../classes/road_builder');
 var Player = require('../api/game/player.model');
 var TestHelper = require('./helpers');
 
