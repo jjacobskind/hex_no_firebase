@@ -61,4 +61,6 @@ BoardNavigator.prototype.goVertical = function(current_vertex, num_rows, row_is_
   return { row: new_row, col: current_vertex.col }
 };
 
-module.exports = BoardNavigator;
+if(typeof require !== 'undefined') {
+  module.exports = BoardNavigator;
+}

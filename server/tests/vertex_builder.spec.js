@@ -1,6 +1,6 @@
-var BoardInitializer = require('../classes/board_initializer');
-var BoardNavigator = require('../classes/board_navigator');
-var VertexBuilder = require('../classes/vertex_builder');
+var BoardInitializer = require('../../game_classes/board_initializer');
+var BoardNavigator = require('../../game_classes/board_navigator');
+var VertexBuilder = require('../../game_classes/vertex_builder');
 var Player = require('../api/game/player.model');
 var TestHelper = require('./helpers');
 

@@ -1,5 +1,5 @@
-var BoardInitializer = require('../classes/board_initializer');
-var BoardNavigator = require ('../classes/board_navigator');
+var BoardInitializer = require('../../game_classes/board_initializer');
+var BoardNavigator = require ('../../game_classes/board_navigator');
 
 describe('BoardNavigator class', function() {
   var small_num = Math.ceil(Math.random() * 100);

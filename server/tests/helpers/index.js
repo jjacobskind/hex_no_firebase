@@ -1,4 +1,4 @@
-var BoardNavigator = require('../../classes/board_navigator');
+var BoardNavigator = require('../../../game_classes/board_navigator');
 
 exports.selfOrAnyNeighborsOwned = function(vertex_coords, vertices) {
   if(!!vertices[vertex_coords.row][vertex_coords.col].owner) { return true; }

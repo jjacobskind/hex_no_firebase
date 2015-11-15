@@ -1,4 +1,4 @@
-var BoardInitializer = require('../classes/board_initializer');
+var BoardInitializer = require('../../game_classes/board_initializer');
 
 describe('BoardInitializer class', function() {
   var small_num               = Math.ceil(Math.random() * 100);

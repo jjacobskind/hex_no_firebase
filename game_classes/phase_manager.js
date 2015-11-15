@@ -94,4 +94,6 @@ PhaseManager.prototype.countPlayerRoads = function() {
   return sum / 2;
 };
 
-module.exports = PhaseManager;
+if(typeof require !== 'undefined') {
+  module.exports = PhaseManager;
+}

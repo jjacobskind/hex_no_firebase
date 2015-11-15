@@ -1,4 +1,6 @@
-var BoardNavigator = require('./board_navigator');
+if(typeof require !== 'undefined') {
+  var BoardNavigator = require('./board_navigator');
+}
 
 var VertexBuilder = function(vertices, player, vertex_coords, board_setup_phase) {
   this.vertices = vertices;
@@ -69,4 +71,6 @@ VertexBuilder.prototype.setError = function(error_string) {
   this.error = { err: error_string };
 };
 
-module.exports = VertexBuilder;
+if(typeof require !== 'undefined') {
+  module.exports = VertexBuilder;
+};
