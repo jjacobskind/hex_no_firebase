@@ -15,7 +15,7 @@ PhaseManager.prototype.playerActionValid = function(action) {
 PhaseManager.prototype.errorFromFailingUniversalConditions = function(action) {
   var game = this.game;
   var playerID = this.player.playerID;
-  if (playerID! == game.currentPlayer) { return 'It is not currently your turn!' }
+  if (playerID !== game.currentPlayer) { return 'It is not currently your turn!'; }
   if(game.robberMoveLockdown && action !== 'moveRobber') { return 'You must move the robber before taking any other action!'; }
   if(game.roadCardLockdown && action !== 'buildRoad') { return 'You must finish building both roads before taking any further action!'; }
 };
@@ -39,7 +39,7 @@ PhaseManager.prototype.buildVertexCheck = function() {
   if(!game.diceRolled && !game.boardSetupPhase) { return 'You must roll the dice before you can build!'; }
   var num_player_vertices = this.countPlayerVertices();
   var round_number = this.calculateRoundNumber();
-  if (game.boardSetupPhase && round_number) === num_player_vertices) { return 'You may only build one settlement per turn during the board setup phase!'; }
+  if (game.boardSetupPhase && round_number === num_player_vertices) { return 'You may only build one settlement per turn during the board setup phase!'; }
 };
 
 PhaseManager.prototype.tradeCheck = function() {
@@ -66,7 +66,7 @@ PhaseManager.prototype.advanceTurnCheck = function() {
 };
 
 PhaseManager.prototype.calculateRoundNumber = function() {
-  return Math.ceil(this.game.turn / this.game.players.length;
+  return Math.ceil(this.game.turn / this.game.players.length);
 }
 
 PhaseManager.prototype.countPlayerVertices = function() {
