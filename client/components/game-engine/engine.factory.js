@@ -2,7 +2,7 @@
 
 angular.module('hexIslandApp')
 	.factory('engineFactory', function($rootScope, $timeout, $http, $state, boardFactory, Auth, authFactory, socket){
-		var game = new GameEngine(3, 5);
+		var game = new GameEngine(null, 3, 5);
 		var gameID;
 
 		var engineUpdateListeners = function() {

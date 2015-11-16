@@ -729,6 +729,7 @@ module.exports = Board;
 },{"../../classes/board_initializer":1}],9:[function(require,module,exports){
 var Board = require('./board-engine');
 var Player = require('./player-engine');
+var BoardInitializer = require('../../classes/board_initializer');
 var PhaseManager = require('../../classes/phase_manager');
 var RoadBuilder = require('../../classes/road_builder');
 var VertexBuilder = require('../../classes/vertex_builder');
@@ -739,7 +740,7 @@ var GameEngine = function(game, small_num, large_num) {
 
   // If a game object is not passed in, create a new game (Mongo schema will add properties with default values)
   if(!game){
-    this.board = new Board(this, null, small_num, large_num);
+    this.board = new BoardInitializer(small_num, large_num);
 
   // Otherwise, populate this GameEngine object with the properties of game
   } else {
@@ -978,7 +979,7 @@ GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
 
 module.exports = GameEngine;
 
-},{"../../classes/phase_manager":4,"../../classes/resource_manager":5,"../../classes/road_builder":6,"../../classes/vertex_builder":7,"./board-engine":8,"./player-engine":10}],10:[function(require,module,exports){
+},{"../../classes/board_initializer":1,"../../classes/phase_manager":4,"../../classes/resource_manager":5,"../../classes/road_builder":6,"../../classes/vertex_builder":7,"./board-engine":8,"./player-engine":10}],10:[function(require,module,exports){
 function Player(player, userInfo, id) {
     if(!!player){
         for(var key in player){
