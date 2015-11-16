@@ -498,8 +498,7 @@ module.exports = function (grunt) {
         files: {
           '<%= yeoman.client %>/index.html': [
               ['{.tmp,<%= yeoman.client %>}/{app,components}/**/three.min.js',
-                '{.tmp,<%= yeoman.client %>}/{app,components}/**/board-engine.js',
-                '{.tmp,<%= yeoman.client %>}/{app,components}/**/game-engine.js',
+               '{.tmp,<%= yeoman.client %>}/{app,components}/game-engine/index.js',
                '{.tmp,<%= yeoman.client %>}/{app,components}/**/*.js',
                '!{.tmp,<%= yeoman.client %>}/app/app.js',
                '!{.tmp,<%= yeoman.client %>}/{app,components}/**/*.spec.js',
@@ -572,7 +571,7 @@ module.exports = function (grunt) {
       return grunt.task.run([
         'clean:server',
         'env:all',
-        'injector:sass', 
+        'injector:sass',
         'concurrent:server',
         'injector',
         'wiredep',
@@ -584,7 +583,7 @@ module.exports = function (grunt) {
     grunt.task.run([
       'clean:server',
       'env:all',
-      'injector:sass', 
+      'injector:sass',
       'concurrent:server',
       'injector',
       'wiredep',
@@ -614,7 +613,7 @@ module.exports = function (grunt) {
       return grunt.task.run([
         'clean:server',
         'env:all',
-        'injector:sass', 
+        'injector:sass',
         'concurrent:test',
         'injector',
         'autoprefixer',
@@ -627,7 +626,7 @@ module.exports = function (grunt) {
         'clean:server',
         'env:all',
         'env:test',
-        'injector:sass', 
+        'injector:sass',
         'concurrent:test',
         'injector',
         'wiredep',
@@ -645,7 +644,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean:dist',
-    'injector:sass', 
+    'injector:sass',
     'concurrent:dist',
     'injector',
     'wiredep',

@@ -1,29 +1,29 @@
-var Board = require('./board-engine').Board;
-var Player = require('./player-engine').Player;
+var Board = require('./board-engine');
+var Player = require('./player-engine');
 var PhaseManager = require('../../classes/phase_manager');
 var RoadBuilder = require('../../classes/road_builder');
 var VertexBuilder = require('../../classes/vertex_builder');
 var ResourceManager = require('../../classes/resource_manager');
 
 var GameEngine = function(game, small_num, large_num) {
-    this.players = [];
+  this.players = [];
 
-    // If a game object is not passed in, create a new game (Mongo schema will add properties with default values)
-    if(!game){
-      this.board = new Board(this, null, small_num, large_num);
+  // If a game object is not passed in, create a new game (Mongo schema will add properties with default values)
+  if(!game){
+    this.board = new Board(this, null, small_num, large_num);
 
-    // Otherwise, populate this GameEngine object with the properties of game
-    } else {
-      for(var key in game){
-        if(key !== 'board' && key !== 'players') {
-          this[key] = game[key];
-        }
-      }
-      this.board = new Board(this, game.board);
-      for(var i=0, len=game.players.length; i<len; i++){
-        this.players.push(new Player(game.players[i]));
+  // Otherwise, populate this GameEngine object with the properties of game
+  } else {
+    for(var key in game){
+      if(key !== 'board' && key !== 'players') {
+        this[key] = game[key];
       }
     }
+    this.board = new Board(this, game.board);
+    for(var i=0, len=game.players.length; i<len; i++){
+      this.players.push(new Player(game.players[i]));
+    }
+  }
 };
 
 /*************************************************
@@ -247,4 +247,4 @@ GameEngine.prototype.moveRobber = function(playerID, destination, origin) {
   return this.board.moveRobber(destination, origin);
 };
 
-exports.GameEngine = GameEngine;
+module.exports = GameEngine;

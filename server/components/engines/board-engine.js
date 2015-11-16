@@ -75,6 +75,4 @@ Board.prototype.moveRobber = function(destination, origin) {
   }
 };
 
-module.exports = {
-  Board: Board
-};
+module.exports = Board;

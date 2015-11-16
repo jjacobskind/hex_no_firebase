@@ -67,7 +67,6 @@ angular.module('hexIslandApp')
 
 		return {
 			prepGameOnClient: function(data){
-
 				var playerID = data.playerID;
 				authFactory.setPlayerID(playerID);
 				delete data.playerID;

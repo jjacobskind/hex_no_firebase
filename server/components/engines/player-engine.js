@@ -65,6 +65,4 @@ Player.prototype.gatherResources = function() {
     return numberOfResourceCards;
 };
 
-module.exports = {
-    Player: Player
-};
+module.exports = Player;
