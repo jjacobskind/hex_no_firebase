@@ -2,6 +2,7 @@
 'use strict';
 
 module.exports = function (grunt) {
+  grunt.loadNpmTasks('grunt-browserify');
   var localConfig;
   try {
     localConfig = require('./server/config/local.env');
@@ -54,14 +55,21 @@ module.exports = function (grunt) {
         url: 'http://localhost:<%= express.options.port %>'
       }
     },
+    browserify: {
+      main: {
+        src: 'server/classes/bundle_list.js',
+        dest: '<%= yeoman.client %>/components/game-engine/index.js'
+      }
+    },
     watch: {
       injectJS: {
         files: [
           '<%= yeoman.client %>/{app,components}/**/*.js',
           '!<%= yeoman.client %>/{app,components}/**/*.spec.js',
           '!<%= yeoman.client %>/{app,components}/**/*.mock.js',
-          '!<%= yeoman.client %>/app/app.js'],
-        tasks: ['injector:scripts']
+          '!<%= yeoman.client %>/app/app.js',
+          'server/classes/**/*.js'],
+        tasks: ['browserify', 'injector:scripts']
       },
       injectCss: {
         files: [

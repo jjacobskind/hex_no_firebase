@@ -6,4 +6,5 @@ public
 dist
 client/bower_components
 /server/config/local.env.js
+/client/components/game-engine/index.js
 notes.txt
