@@ -3,9 +3,9 @@
 var _ = require('lodash');
 var Game = require('./game.model');
 var User = require('../user/user.model');
-var GameObject = require('../../components/engines/game-engine').GameEngine;
-var BoardObject = require('../../components/engines/game-engine').BoardEngine;
-var PlayerObject = require('../../components/engines/player-engine').Player;
+var GameObject = require('../../components/engines/game-engine');
+var BoardObject = require('../../components/engines/game-engine');
+var PlayerObject = require('../../components/engines/player-engine');
 var helpers = require('../../components/helpers');
 var GameFabricator = require('../../components/game-fabricator');
 
