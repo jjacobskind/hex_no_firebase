@@ -9,12 +9,12 @@ angular.module('hexIslandApp')
 
 			// Receives notification that a building has been constructed
 			socket.on('buildingToClient', function(data){
-				var row = data.location[0], col = data.location[1];
+				var row = data.location.row, col = data.location.col;
 
-				game.gameBoard.boardVertices[row][col].owner = data.PlayerID;
-				game.gameBoard.boardVertices[row][col].hasSettlementOrCity = data.type;
+				game.board.vertices[row][col].owner = data.PlayerID;
+				game.board.vertices[row][col].property_type = data.type;
 				updateGameProperties(data);
-				if(data.type==='settlement'){
+				if(data.type === 'settlement'){
 					boardFactory.placeSettlement(data.playerID, data.location);
 				} else {
 					boardFactory.upgradeSettlementToCity(data.location);
@@ -26,12 +26,12 @@ angular.module('hexIslandApp')
 				game.players = data.game.players;
 
 				// Set player as owner of appropriate road from original location
-				var row = data.location[0], col = data.location[1];
-				game.gameBoard.boardVertices[row][col].connections[data.locationDirection] = data.PlayerID;
+				var row = data.location.row, col = data.location.col;
+				game.board.vertices[row][col].connections[data.locationDirection] = data.PlayerID;
 
 				// Set player as owner of appropriate road from destination
-				row = data.destination[0], col = data.destination[1];
-				game.gameBoard.boardVertices[row][col].connections[data.destinationDirection] = data.PlayerID;
+				row = data.destination.row, col = data.destination.col;
+				game.board.vertices[row][col].connections[data.destinationDirection] = data.PlayerID;
 
 				boardFactory.buildRoad(data.playerID, data.location, data.destination);
 				updateGameProperties(data);
@@ -46,8 +46,8 @@ angular.module('hexIslandApp')
 
 			socket.on('moveRobberToClient', function(data){
 				var origin = data.origin, destination = data.destination;
-				game.gameBoard.boardTiles[origin[0]][origin[1]].robber = false;
-				game.gameBoard.boardTiles[destination[0]][destination[1]].robber = true;
+				game.board.tiles[origin.row][origin.col].robber = false;
+				game.board.tiles[destination.row][destination.col].robber = true;
 				updateGameProperties(data);
 				boardFactory.moveRobber(destination, origin);
 			});
@@ -55,11 +55,11 @@ angular.module('hexIslandApp')
 
 		var updateGameProperties = function(data){
 			for(var key in data.game){
-				if(key!=='boardVertices' && key!=='boardTiles') {
+				if(key !== 'boardVertices' && key !== 'boardTiles') {
 					game[key] = data.game[key];
-					if(key==='players') { $rootScope.playerData = game.players[authFactory.getPlayerID()]; }
-					if(key==='currentPlayer') { $rootScope.currentPlayer = game.currentPlayer; }
-					if(key==='turn') { $rootScope.currentTurn = game.turn; }
+					if(key === 'players') { $rootScope.playerData = game.players[authFactory.getPlayerID()]; }
+					if(key === 'currentPlayer') { $rootScope.currentPlayer = game.currentPlayer; }
+					if(key === 'turn') { $rootScope.currentTurn = game.turn; }
 
 				}
 			}
@@ -73,8 +73,8 @@ angular.module('hexIslandApp')
 
 				// Need to load in game data without losing references to functions on the prototype chain
 				for(var key in data){
-					if(key==='gameBoard'){
-						for(var key2 in data.gameBoard){
+					if(key === 'gameBoard'){
+						for(var key2 in data.board){
 							game[key][key2] = data[key][key2];
 						}
 					} else {
@@ -101,9 +101,9 @@ angular.module('hexIslandApp')
 				return game.chatMessages;
 			},
 			buildSettlement: function(location){
-				var settlement_exists = (game.gameBoard.boardVertices[location[0]][location[1]].hasSettlementOrCity === "settlement")
-				var construction = game.buildSettlement(authFactory.getPlayerID(), location);
-				if(construction.hasOwnProperty("err")){
+				var settlement_exists = (game.board.vertices[location.row][location.col].property_type === 'settlement')
+				var construction = game.buildVertex(authFactory.getPlayerID(), location);
+				if(construction.hasOwnProperty('err')) {
 					console.log(construction.err);
 					return false;
 				}
@@ -119,7 +119,7 @@ angular.module('hexIslandApp')
 			},
 			buildRoad: function(location, direction){
 				var road = game.buildRoad(authFactory.getPlayerID(), location, direction);
-				if(road.hasOwnProperty("err")){
+				if(road.hasOwnProperty('err')) {
 					console.log(road.err);
 					return false;
 				} else {
@@ -130,7 +130,7 @@ angular.module('hexIslandApp')
 			},
 			moveRobber: function(destination, origin){
 				var moveInfo = game.moveRobber(authFactory.getPlayerID(), destination, origin);
-				if(moveInfo.hasOwnProperty("err")){
+				if(moveInfo.hasOwnProperty('err')) {
 					console.log(moveInfo.err);
 					return false;
 				} else {
@@ -149,7 +149,7 @@ angular.module('hexIslandApp')
 			nextTurn: function () {
 		    // Add code to check player move
 		    var newTurn = game.advancePlayerTurn(authFactory.getPlayerID());
-		    if(newTurn.hasOwnProperty("console")){
+		    if(newTurn.hasOwnProperty('console')){
 		    	err.log(newTurn.err);
 		    } else {
 		    	$rootScope.currentTurn = game.turn;
@@ -162,7 +162,7 @@ angular.module('hexIslandApp')
 	    	return game.robberMoveLockdown;
 	    },
 	    isRobberOnTile: function(indices) {
-	    	return game.gameBoard.boardTiles[indices[0]][indices[1]].robber;
+				return game.board.tiles[indices.row][indices.col].robber;
 	    },
 			startGame: function () {
 				// game.areAllPlayersAdded = true;
