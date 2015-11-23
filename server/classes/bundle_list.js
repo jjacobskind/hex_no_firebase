@@ -5,3 +5,4 @@ PhaseManager = require('./phase_manager');
 RoadBuilder = require('./road_builder');
 VertexBuilder = require('./vertex_builder');
 ResourceManager = require('./resource_manager');
+BoardNavigator = require('./board_navigator');

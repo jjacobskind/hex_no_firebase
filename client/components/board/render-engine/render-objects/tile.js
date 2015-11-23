@@ -5,7 +5,7 @@ var Tile = function(board, coordinates, resource, number) {
 	if(!this.tileGeometry) { this.generateTileGeometry(); }
 
 	this.tile = this.drawTile(coordinates, resource);
-	if(resource!=="desert"){
+	if(resource !== 'desert'){
 		this.chit = this.drawChit(coordinates, number);
 	}
 };
@@ -23,7 +23,7 @@ Tile.prototype.drawTile = function(coordinates, resource) {
 
 	var materials = new THREE.MeshFaceMaterial([white_material, textured_material]);
 	var tile = new THREE.Mesh( this.tileGeometry, materials );
-	tile.position.set( coordinates[0], 0, coordinates[1] );
+	tile.position.set( coordinates.x, 0, coordinates.z );
 	tile.rotation.set(Math.PI/2, 0, Math.PI/6);
 	return tile;
 };
@@ -67,7 +67,7 @@ Tile.prototype.drawChit = function(coordinates, chit_number) {
 	var materials = [number_material, white_material];
 
 	var num_chip = new THREE.Mesh(this.chitGeometry, new THREE.MeshFaceMaterial(materials));
-	num_chip.position.set(coordinates[0], 0.5*this.board.scale, coordinates[1]);
+	num_chip.position.set(coordinates.x, 0.5*this.board.scale, coordinates.z);
 	num_chip.rotation.set(Math.PI/2, Math.PI, 0);
 	return num_chip;
 };

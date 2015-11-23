@@ -2,17 +2,18 @@ var Board = function(scene, game, scale) {
 	this.scene = scene;
 
 	// Board values
-	this.boardVertices = game.gameBoard.boardVertices; 	//will be overwritten with with game rendering board vertices
+	this.vertices = game.board.vertices; 	//will be overwritten with with game rendering board vertices
+	this.board_navigator = new BoardNavigator(this.vertices);
 	this.robbers = [];
-	this.small_num = game.gameBoard.boardTiles[0].length;
-	this.big_num = game.gameBoard.boardTiles[Math.floor(game.gameBoard.boardTiles.length/2)].length;
+	this.small_num = game.board.tiles[0].length;
+	this.big_num = game.board.tiles[Math.floor(game.board.tiles.length/2)].length;
 	this.ports = [];	//Stored in array so that faces are always camera-facing
 
 	// the size at which the board is rendered can be adjusted by changing this.scale
 	// default value of this.scale is 1 (ex: setting this.scale to 2 will draw the board twice as large)
 	if(!!scale && scale>10) {
 		this.scale=10;
-	} 
+	}
 	else if(!!scale && scale<0){
 		this.scale = scale;
 	} else {
@@ -22,11 +23,10 @@ var Board = function(scene, game, scale) {
 	// Values used by multiple objects
 	this.side_length = 30 * this.scale;
 	this.bevelSize = 4 * this.scale;
-	this.getRoadDestination = game.gameBoard.getRoadDestination;
 
 	// These functions draw the board and place objects on the board
-	this.tiles = this.drawBoard(game.gameBoard.boardTiles);
-	this.populateBoard(game.gameBoard.boardTiles);
+	this.tiles = this.drawBoard(game.board.tiles);
+	this.populateBoard(game.board.tiles);
 };
 
 Board.prototype.drawBoard = function(tiles) {
@@ -37,7 +37,7 @@ Board.prototype.drawBoard = function(tiles) {
 		var board_tile_row = [];
 
 		for(var col=0, num_cols=tiles[row].length;col<num_cols; col++){
-			var coordinates = this.indicesToCoordinates([row, col]);
+			var coordinates = this.indicesToCoordinates({ row: row, col: col });
 			var obj=new Tile(this, coordinates, tiles[row][col].resource, tiles[row][col].chit);
 			this.scene.add(obj.tile);
 			if(!!obj.chit){
@@ -52,41 +52,41 @@ Board.prototype.drawBoard = function(tiles) {
 
 	// compile array of all outer vertices
 	var outer_vertices = [];
-	var cur_vertex = [0,0];
+	var cur_vertex = { row: 0, col: 0 };
 	while(!!cur_vertex){
 		outer_vertices.push(cur_vertex);
-		cur_vertex = this.getRoadDestination(cur_vertex, "right");
+		cur_vertex = this.board_navigator.getRoadDestination(cur_vertex, 'right');
 	}
 	var left_vertices =[];
-	num_rows = this.boardVertices.length;
+	num_rows = this.vertices.length;
 	for(row=2;row<num_rows;row++){
-		col = this.boardVertices[row].length-1;
-		outer_vertices.push([row, col]);
-		left_vertices.push([row, 0]);
+		col = this.vertices[row].length-1;
+		outer_vertices.push({ row: row, col: col });
+		left_vertices.push({ row: row, col: 0 });
 	}
 	left_vertices.pop();
 	left_vertices = left_vertices.reverse();
-	cur_vertex = [--row, col];
+	cur_vertex = { row: --row, col: col };
 	outer_vertices.pop();
 
 	while(!!cur_vertex){
 		outer_vertices.push(cur_vertex);
-		cur_vertex = this.getRoadDestination(cur_vertex, "left");
+		cur_vertex = this.board_navigator.getRoadDestination(cur_vertex, 'left');
 	}
 	outer_vertices.pop();
 	outer_vertices = outer_vertices.concat(left_vertices);
-	outer_vertices.push([1, 0]);
+	outer_vertices.push( {row: 1, col: 0 });
 
 	for(var i=0, len=outer_vertices.length; i<len; i++) {
-		var row=outer_vertices[i][0], col = outer_vertices[i][1];
+		var row = outer_vertices[i].row, col = outer_vertices[i].col;
 		if(i<len-1){
-			var row_next= outer_vertices[i+1][0], col_next= outer_vertices[i+1][1];
+			var row_next = outer_vertices[i+1].row, col_next = outer_vertices[i+1].col;
 		}
-		if(!!this.boardVertices[row][col].port && (i===0 || i===len-1 || !!this.boardVertices[row_next][col_next].port)) {
-			if(!this.boardVertices[row_next][col_next].port){
-				this.drawPort(outer_vertices[i], undefined, this.boardVertices[row][col].port);
+		if(!!this.vertices[row][col].port && (i===0 || i===len-1 || !!this.vertices[row_next][col_next].port)) {
+			if(!this.vertices[row_next][col_next].port){
+				this.drawPort(outer_vertices[i], undefined, this.vertices[row][col].port);
 			} else {
-				this.drawPort(outer_vertices[i], outer_vertices[++i], this.boardVertices[row][col].port);
+				this.drawPort(outer_vertices[i], outer_vertices[++i], this.vertices[row][col].port);
 			}
 		}
 	}
@@ -98,12 +98,12 @@ Board.prototype.drawPort = function(location1, location2, resource){
 	if(!!location1 && !!location2){
 		var coords1 = this.verticesToCoordinates(location1);
 		var coords2 = this.verticesToCoordinates(location2);
-	} else if(location1!==[1, 0]) {
-		coords1 = this.verticesToCoordinates([1, 0]);
-		coords2 = this.verticesToCoordinates([0, 0]);
+	} else if(location1 !== { row: 1, col: 0 }) {
+		coords1 = this.verticesToCoordinates({ row: 1, col: 0 });
+		coords2 = this.verticesToCoordinates({ row: 0, col: 0 });
 	}
-	var x_avg = (coords1[0] + coords2[0])/2;
-	var z_avg = (coords1[1] + coords2[1])/2;
+	var x_avg = (coords1.x + coords2.x) / 2;
+	var z_avg = (coords1.z + coords2.z) / 2;
 
 	// add textures to ports
 	var texture = new THREE.ImageUtils.loadTexture( 'assets/images/tile_textures/' + resource + '.jpg' );
@@ -119,7 +119,7 @@ Board.prototype.drawPort = function(location1, location2, resource){
 	// Create chip shape for temporary port token
 	var circlePts = [];
 	var numCirclePts = 32
-	for(i=0;i<numCirclePts*2;i++){
+	for(i=0; i<numCirclePts*2; i++){
 		var a = i/numCirclePts * Math.PI;
 		circlePts.push(new THREE.Vector2(Math.cos(a)* this.side_length / 4, Math.sin(a)* this.side_length /4));
 	}
@@ -129,7 +129,7 @@ Board.prototype.drawPort = function(location1, location2, resource){
 	var port_geometry = new THREE.ExtrudeGeometry(chitShape, {amount:5, bevelEnabled:false});
 
 	// Applies white_material to all faces other than those facing upwards
-	if(resource==="general") {
+	if(resource === 'general') {
 		for(var i=0; i<252; i++){
 			if(i===62){
 				i=124;
@@ -173,8 +173,8 @@ Board.prototype.indicesToCoordinates = function(indices){
 	var small_num = this.small_num;
 	var big_num = this.big_num;
 	var num_rows = (2*(big_num-small_num)) + 1;
-	var row = indices[0];
-	var col = indices[1];
+	var row = indices.row;
+	var col = indices.col;
 	var middle_row = Math.floor(num_rows/2);
 	var x_pos = 0;
 	if(row!==middle_row){
@@ -192,7 +192,7 @@ Board.prototype.indicesToCoordinates = function(indices){
 	x_pos=(col-half_col) * this.side_length * 2;
 	var z_pos = (row-middle_row) * this.side_length * 2;
 	z_pos-=(row-middle_row)*10*this.scale;
-	return [-x_pos, -z_pos];
+	return { x: -x_pos, z: -z_pos };
 };
 
 Board.prototype.coordinatesToVertices = function(coordinates){
@@ -205,7 +205,7 @@ Board.prototype.coordinatesToVertices = function(coordinates){
 	var side_length = this.side_length + this.bevelSize;
 	var half_length = side_length/2;
 	var short_distance = side_length * Math.cos(Math.PI/3);
-	
+
 	// Calculate row
 	var remainder = Math.abs(z) - short_distance;
 
@@ -241,7 +241,7 @@ Board.prototype.coordinatesToVertices = function(coordinates){
 	}
 	var half_col = num_cols/2;
 	var col = Math.floor(half_col + (x_index/2));
-	
+
 	if(col<0 || col>num_cols){
 		return -1;
 	}
@@ -249,14 +249,14 @@ Board.prototype.coordinatesToVertices = function(coordinates){
 };
 
 Board.prototype.verticesToCoordinates = function(location){
-	var z = location[0];
-	var x = location[1];
+	var z = location.row;
+	var x = location.col;
 	var small_num = this.small_num;
 	var big_num = this.big_num;
 	var num_rows = (4*(big_num-small_num)) + 4;
 
 	// Calculate x-coordinate of vertex
-	var num_cols = this.boardVertices[z].length;
+	var num_cols = this.vertices[z].length;
 	var offset = num_cols-1;	//set the number of tile-widths from the center vertex in the row to the edge of the board
 
 	var side_length = this.side_length + this.bevelSize;
@@ -273,7 +273,7 @@ Board.prototype.verticesToCoordinates = function(location){
 	} else {
 		direction = 1;
 	}
-	
+
 	//Board coordinates drop as row gets higher, so z_offset and temp_row need to iterate in opposite directions
 	var z_offset = side_length*0.5*direction;
 	temp_row -= 0.5 * direction;
@@ -288,11 +288,11 @@ Board.prototype.verticesToCoordinates = function(location){
 		i++;
 	}
 
-	return [x_coord, z_offset];
+	return { x: x_coord, z: z_offset };
 };
 
 Board.prototype.buildRoad = function(playerID, location1, location2){
-	var road = new Road(this, playerID, location1, location2);	
+	var road = new Road(this, playerID, location1, location2);
 	this.scene.add(road);
 	return road;
 };
@@ -300,23 +300,23 @@ Board.prototype.buildRoad = function(playerID, location1, location2){
 //Draws roads and buildings on board for game in progress
 Board.prototype.populateBoard = function(tiles) {
 	var vertices=[];
-	for(var row=0, num_rows=this.boardVertices.length; row < num_rows; row++) {
+	for(var row=0, num_rows=this.vertices.length; row < num_rows; row++) {
 		var vertices_row=[];
-		for(var col=0, num_cols=this.boardVertices[row].length; col < num_cols; col++){
+		for(var col=0, num_cols=this.vertices[row].length; col < num_cols; col++){
 			var obj = {};
-			var settlement_or_city = this.boardVertices[row][col].hasSettlementOrCity;
-			var owner = this.boardVertices[row][col].owner
-			if(!!settlement_or_city){
-				obj.building = new Building(this, settlement_or_city, owner, [row, col]);
+			var property_type = this.vertices[row][col].proprty_type;
+			var owner = this.vertices[row][col].owner
+			if(!!property_type){
+				obj.building = new Building(this, property_type, owner, [row, col]);
 				this.scene.add(obj.building.building);
 			}
-			for(var key in this.boardVertices[row][col].connections){
-				if(this.boardVertices[row][col].connections[key] !== null){
-					obj[key] = this.boardVertices[row][col].connections[key];
-					var destination = this.getRoadDestination.call(this, [row, col], key);
+			for(var key in this.vertices[row][col].connections){
+				if(this.vertices[row][col].connections[key] !== null){
+					obj[key] = this.vertices[row][col].connections[key];
+					var destination = this.board_navigator.getRoadDestination({ row: row, col: col }, key);
 					if(!!destination && (row<destination[0] || col<destination[1])){
 						obj.connections = {};
-						owner = this.boardVertices[row][col].connections[key];
+						owner = this.vertices[row][col].connections[key];
 						obj.connections[key] = this.buildRoad(owner, [row, col], destination);
 						this.scene.add(obj.connections[key]);
 					}
@@ -326,11 +326,11 @@ Board.prototype.populateBoard = function(tiles) {
 		}
 		vertices.push(vertices_row);
 	}
-	this.boardVertices = vertices;
+	this.vertices = vertices;
 	for(row=0, num_rows=tiles.length;row<num_rows; row++){
 		for(col=0, num_cols=tiles[row].length;col<num_cols;col++){
 			if(!!tiles[row] && !!tiles[row][col] && tiles[row][col].robber === true){
-				this.drawRobber([row, col]);
+				this.drawRobber({ row: row, col: col });
 			}
 		}
 	}
@@ -364,10 +364,10 @@ Board.prototype.getTile = function(coords, cb, indices1){
 	var side_length = this.side_length + this.bevelSize;
 	for(var row=0, num_rows=this.tiles.length; row<num_rows; row++){
 		for(var col=0, num_cols=this.tiles[row].length; col<num_cols; col++){
-			var tile_center = this.indicesToCoordinates([row, col]);
-			var dist_from_tip = side_length - Math.abs(tile_center[1]-z);
+			var tile_center = this.indicesToCoordinates({ row: row, col: col });
+			var dist_from_tip = side_length - Math.abs(tile_center.z - z);
 			if(dist_from_tip<side_length){		//Checking if z coordinate is within the highest/lowest tip of tile
-				var dist_from_center = Math.abs(tile_center[0]-x);
+				var dist_from_center = Math.abs(tile_center.x - x);
 
 				// Set meximum x offset portion of tile can have from its center for a given vertical coordinate
 				var horizontal_range = Math.tan(Math.PI/6) * dist_from_tip;
@@ -378,7 +378,7 @@ Board.prototype.getTile = function(coords, cb, indices1){
 				}
 
 				if(dist_from_center < horizontal_range*2){
-					return [row, col];
+					return { row: row, col: col };
 				}
 			}
 		}
@@ -387,16 +387,16 @@ Board.prototype.getTile = function(coords, cb, indices1){
 };
 
 Board.prototype.getVertex = function(coords, cb){
-	var x=-coords[0], z=coords[1];
+	var x =- coords.x, z = coords.z;
 	var radius = 15 * this.scale;
-	for(var row=0, num_rows=this.boardVertices.length; row<num_rows; row++){
-		for(var col=0, num_cols=this.boardVertices[row].length; col<num_cols; col++){
-			var vertex_coords = this.verticesToCoordinates([row, col]);
-			var x_diff = vertex_coords[0]-x;
-			var z_diff = vertex_coords[1]-z;
+	for(var row=0, num_rows=this.vertices.length; row<num_rows; row++){
+		for(var col=0, num_cols=this.vertices[row].length; col<num_cols; col++){
+			var vertex_coords = this.verticesToCoordinates({ row: row, col: col });
+			var x_diff = vertex_coords.x - x;
+			var z_diff = vertex_coords.z - z;
 			var distance_from_vertex = Math.sqrt(Math.pow(x_diff, 2) + Math.pow(z_diff, 2));
 			if(distance_from_vertex<radius){
-				return [row, col];
+				return { row: row, col: col };
 			}
 		}
 	}
@@ -404,19 +404,19 @@ Board.prototype.getVertex = function(coords, cb){
 };
 
 Board.prototype.getRoad = function(coords){
-	var x=-coords[0], z=coords[1];
+	var x = -coords.x, z = coords.z;
 	var bevel_width = this.bevelSize;
 	var road_width = bevel_width * 2;
 	var road_length = this.side_length + (this.bevelSize*2);
 	var vertex1, vertex2;
-	for(var row=0, num_rows=this.boardVertices.length; !vertex1 && row<num_rows; row++){
-		for(var col=0, num_cols=this.boardVertices[row].length; !vertex1 && col<num_cols; col++){
-			var vertex_coords = this.verticesToCoordinates([row, col]);
-			var x_diff = vertex_coords[0]-x;
-			var z_diff = vertex_coords[1]-z;
+	for(var row=0, num_rows=this.vertices.length; !vertex1 && row<num_rows; row++){
+		for(var col=0, num_cols=this.vertices[row].length; !vertex1 && col<num_cols; col++){
+			var vertex_coords = this.verticesToCoordinates({ row: row, col: col });
+			var x_diff = vertex_coords.x - x;
+			var z_diff = vertex_coords.z - z;
 			var distance_from_vertex = Math.sqrt(Math.pow(x_diff, 2) + Math.pow(z_diff, 2));
 			if(distance_from_vertex<road_length){
-				vertex1 = [row, col];
+				vertex1 = { row: row, col: col };
 
 			}
 		}
@@ -427,43 +427,43 @@ Board.prototype.getRoad = function(coords){
 	}
 
 	// Determine whether the vertical road was clicked
-	vertex2 = this.getRoadDestination(vertex1, "vertical");
+	vertex2 = this.board_navigator.getRoadDestination(vertex1, 'vertical');
 	var coords1 = this.verticesToCoordinates(vertex1);
-	if(!!vertex2){ 
+	if(!!vertex2){
 		var coords2 = this.verticesToCoordinates(vertex2);
-		if(x<=(coords1[0] + bevel_width) && x>=(coords1[0] - bevel_width) 		//checking if x click coordinate lies within road width
-		&& (z<=coords1[1] && z>=coords2[1]))	{							//vertex1 z-coordinate will always be higher than vertex2 due to top-down iteration through vertices
-			return { start_vertex: vertex1, direction: "vertical" };
+		if(x<=(coords1.x + bevel_width) && x>=(coords1.x - bevel_width) 		//checking if x click coordinate lies within road width
+		&& (z<=coords1.z && z>=coords2.z))	{							//vertex1 z-coordinate will always be higher than vertex2 due to top-down iteration through vertices
+			return { start_vertex: vertex1, direction: 'vertical' };
 		}
 	}
 
 	// Vertical road wasn't clicked, so rule out the left or right road based on x-coordinates
-	var adjacent_vertices = [this.getRoadDestination(vertex1, "left")];
-	adjacent_vertices.push(this.getRoadDestination(vertex1, "right"));
+	var adjacent_vertices = [this.board_navigator.getRoadDestination(vertex1, 'left')];
+	adjacent_vertices.push(this.board_navigaot.getRoadDestination(vertex1, 'right'));
 	var count = 2;
 	while(adjacent_vertices.length){
 		count--;
 		var temp_vertex = adjacent_vertices.pop();
 		coords2 = this.verticesToCoordinates(temp_vertex);
-		if(x>= Math.min(coords1[0], coords2[0]) && x<= Math.max(coords1[0], coords2[0])){
+		if(x>= Math.min(coords1.x, coords2.x) && x<= Math.max(coords1.x, coords2.x)){
 			vertex2 = temp_vertex;
 			break;
 		}
 	}
 
 
-	// Since vertex 1 always has higher z than vertex2, find how far click-x is from vertex1-x, 
+	// Since vertex 1 always has higher z than vertex2, find how far click-x is from vertex1-x,
 	// calculate z-offset for center of road at that x-offset, and subtract from vertex-z
-	x_diff = Math.abs(coords1[0] - x);
-	bevel_width*=1.5; //factoring in extra wiggle room for clicking
-	var road_vertical_center = coords1[1] - (Math.tan(Math.PI/6) * x_diff);
+	x_diff = Math.abs(coords1.x - x);
+	bevel_width *= 1.5; //factoring in extra wiggle room for clicking
+	var road_vertical_center = coords1.col - (Math.tan(Math.PI/6) * x_diff);
 	if(z>=road_vertical_center - bevel_width && z<=road_vertical_center + bevel_width){
 		switch(count){
 			case 1:
-				var direction = "right";
+				var direction = 'right';
 				break;
 			case 0:
-				direction = "left";
+				direction = 'left';
 		}
 		return { start_vertex: vertex1, direction: direction };
 	}
@@ -475,12 +475,12 @@ Board.prototype.getRoad = function(coords){
 Board.prototype.moveRobber = function(destination, origin){
 	var destination_tile_center = this.indicesToCoordinates(destination);
 	if(this.robbers.length===1){
-		this.robbers[0].position.set(destination_tile_center[0], 0, destination_tile_center[1]);
+		this.robbers[0].position.set(destination_tile_center.x, 0, destination_tile_center.z);
 	} else {
 		var origin_tile_center = this.indicesToCoordinates(origin);
 		for(var i=0, len=this.robbers.length; i<len; i++) {
-			if(this.robbers[i].position.x=== origin_tile_center[0] && this.robbers[i].position.z=== origin_tile_center[1]) {
-				this.robbers[i].position.set(destination_tile_center[0], 0, destination_tile_center[1]);
+			if(this.robbers[i].position.x=== origin_tile_center.x && this.robbers[i].position.z=== origin_tile_center.z) {
+				this.robbers[i].position.set(destination_tile_center.x, 0, destination_tile_center.z);
 				return null;
 			}
 		}

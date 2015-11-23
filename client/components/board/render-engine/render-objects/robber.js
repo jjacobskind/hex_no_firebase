@@ -8,7 +8,7 @@ var Robber = function(board, location) {
 	robber.rotation.set(Math.PI/-2,0,0);
 
 	var coords = this.board.indicesToCoordinates(location);
-	robber.position.set(coords[0],0,coords[1]);
+	robber.position.set(coords.x,0,coords.z);
 	return robber;
 };
 
@@ -42,5 +42,5 @@ Robber.prototype.generateGeometry = function() {
 	points.push(new THREE.Vector3(0, 0, scaled_i));
 
 	Robber.prototype.geometry = new THREE.LatheGeometry( points);
-	
+
 };

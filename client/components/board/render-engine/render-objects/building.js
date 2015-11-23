@@ -2,22 +2,22 @@ var Building = function(board, building_type, owner, location){
 	this.board = board;
 	this.building_depth = 15 * this.board.scale;
 	var coords = this.board.verticesToCoordinates(location);
-	this.x = coords[0];
-	this.z = coords[1];
+	this.x = coords.x;
+	this.z = coords.z;
 	this.color = this.board.playerColor(owner);
 	this.building = null;
 
 	switch(building_type){
-		case "settlement":
+		case 'settlement':
 			if(!this.settlementGeometry) { this.generateSettlementGeometry(); }
 			this.building = this.makeMesh(this.settlementGeometry);
 			break;
-		case "city":
+		case 'city':
 			if(!this.cityGeometry) { this.generateCityGeometry(); }
 			this.building = this.makeMesh(this.cityGeometry);
 			break;
 		default:
-			throw ("Invalid building type!");
+			throw ('Invalid building type!');
 			break;
 	}
 };

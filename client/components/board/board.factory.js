@@ -20,7 +20,7 @@ angular.module('hexIslandApp')
 	      var camera_z = -300;
 	      camera.position.set( camera_x, 200, camera_z );
 
-	      
+
 	      controls = new THREE.OrbitControls( camera, renderer.domElement );
 	      controls.noPan = true;
 	      controls.maxPolarAngle = Math.PI/2.5;
@@ -101,7 +101,7 @@ angular.module('hexIslandApp')
 
 	      var pos = camera.position.clone().add( dir.multiplyScalar( distance ) );
 	      pos.x*= -1;
-	      var click_coordinates = [pos.x, pos.z];
+	      var click_coordinates = { x: pos.x, z: pos.z };
 
 	      if(!!someAction){
 	        var success = someAction(click_coordinates);
@@ -114,7 +114,7 @@ angular.module('hexIslandApp')
 	  var renderWater = function(){
 
 	    var waterNormals = new THREE.ImageUtils.loadTexture( 'assets/images/waternormals.jpg' );
-	    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping; 
+	    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
 
 	    water = new THREE.Water( renderer, camera, scene, {
 	      waterNormals: waterNormals,
@@ -217,7 +217,7 @@ angular.module('hexIslandApp')
 		          } else if (!!indices1 && engine_factory.isRobberOnTile(indices1)) {
 		          	someAction = function(coords2) {
 		          		var indices2 = game_board.getTile(coords2);
-		          		if (!!indices2) { 
+		          		if (!!indices2) {
 		          			var move_result = engine_factory.moveRobber(indices2, indices1);
 		          			//reset two-click action so user can choose to select another robber instead
 		          			if(!move_result) { someAction = parentFunc; }

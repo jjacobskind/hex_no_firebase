@@ -2,7 +2,7 @@
 
 angular.module('hexIslandApp')
   .controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
-    if(!engineFactory.getGame().gameBoard.game.players){
+    if(!engineFactory.getGame().players){
       $state.go('main.menu');
       return;
     }
