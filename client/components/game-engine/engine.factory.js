@@ -100,7 +100,7 @@ angular.module('hexIslandApp')
 			getChatMessages: function() {
 				return game.chatMessages;
 			},
-			buildSettlement: function(location){
+			buildVertex: function(location){
 				var settlement_exists = (game.board.vertices[location.row][location.col].property_type === 'settlement')
 				var construction = game.buildVertex(authFactory.getPlayerID(), location);
 				if(construction.hasOwnProperty('err')) {

@@ -1,7 +1,7 @@
 // Contains helper functions for socket events and routing functions
 
 var Game = require('../../api/game/game.model');
-var GameEngine = require('../engines/game-engine').GameEngine;
+var GameEngine = require('../engines/game-engine');
 
 // Gets player index number of user in game. Returns -1 if user is not in game
 var getPlayerIndex = function(game, userID) {
@@ -96,9 +96,8 @@ exports.advancePlayerTurn = function(userID, gameID) {
 
 // Validates building construction
 exports.constructBuilding = function(userID, gameID, data){
-
 	var actionData = {
-		functionName: 'buildSettlement',
+		functionName: 'buildVertex',
 		functionParameters: [data.location],
 		properties: [
 			{ game: ['players', 'longestRoad'] },

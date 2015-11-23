@@ -24,7 +24,7 @@ var GameSchema = new Schema({
       roadLength: null
     }
   },
-  turn: { type: Number, required: true, default: 0 },
+  turn: { type: Number, required: true, default: 1 },
 
   // BOARD
   board: {

@@ -203,7 +203,7 @@ angular.module('hexIslandApp')
 	            buildMode = true;
 	            someAction = function(coords) {
 	            	var indices = game_board.getVertex(coords);
-		            if(!!indices) { return engine_factory.buildSettlement(indices); }
+		            if(!!indices) { return engine_factory.buildVertex(indices); }
 		            return false;
 	            }
 	          }
@@ -242,10 +242,10 @@ angular.module('hexIslandApp')
 	      animate();
 	    },
 	    placeSettlement: function(player, location){
-	      var row=location[0], col=location[1];
-	      if(!game_board.boardVertices[row][col].building){
-	        var settlement = new Building(game_board, "settlement", player, location);
-	        game_board.boardVertices[row][col].building=settlement;
+	      var row = location.row, col = location.col;
+	      if(!game_board.vertices[row][col].building){
+	        var settlement = new Building(game_board, 'settlement', player, location);
+	        game_board.vertices[row][col].building = settlement;
 	        scene.add(settlement.building);
 	      }
 	    },

@@ -215,8 +215,7 @@ GameEngine.prototype.buildVertex = function(playerID, location) {
   var phase_manager = new PhaseManager(this, this.players[playerID]);
   var isPlayerTurn = phase_manager.playerActionValid('buildVertex');
   if(isPlayerTurn !== true) { return isPlayerTurn; }
-
-  var vertex_builder = new VertexBuilder(this.vertices, this.players[playerID], location, this.boardSetupPhase);
+  var vertex_builder = new VertexBuilder(this.board.vertices, this.players[playerID], location, this.boardSetupPhase);
   if(!!vertex_builder.error) { return vertex_builder.error; }
   var resource_manager = new ResourceManager(this);
   var resources_available = resource_manager.areResourcesAvailable(playerID, vertex_builder.property_type_to_build);

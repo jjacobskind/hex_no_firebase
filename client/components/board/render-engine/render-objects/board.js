@@ -304,20 +304,20 @@ Board.prototype.populateBoard = function(tiles) {
 		var vertices_row=[];
 		for(var col=0, num_cols=this.vertices[row].length; col < num_cols; col++){
 			var obj = {};
-			var property_type = this.vertices[row][col].proprty_type;
+			var property_type = this.vertices[row][col].property_type;
 			var owner = this.vertices[row][col].owner
 			if(!!property_type){
-				obj.building = new Building(this, property_type, owner, [row, col]);
+				obj.building = new Building(this, property_type, owner, { row: row, col: col });
 				this.scene.add(obj.building.building);
 			}
 			for(var key in this.vertices[row][col].connections){
 				if(this.vertices[row][col].connections[key] !== null){
 					obj[key] = this.vertices[row][col].connections[key];
 					var destination = this.board_navigator.getRoadDestination({ row: row, col: col }, key);
-					if(!!destination && (row<destination[0] || col<destination[1])){
+					if(!!destination && (row < destination.row || col < destination.col)){
 						obj.connections = {};
 						owner = this.vertices[row][col].connections[key];
-						obj.connections[key] = this.buildRoad(owner, [row, col], destination);
+						obj.connections[key] = this.buildRoad(owner, { row: row, col: col }, destination);
 						this.scene.add(obj.connections[key]);
 					}
 				}

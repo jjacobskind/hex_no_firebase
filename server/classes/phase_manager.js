@@ -6,7 +6,7 @@ var PhaseManager = function(game, player) {
 PhaseManager.prototype.playerActionValid = function(action) {
   var error = this.errorFromFailingUniversalConditions(action);
   if(!!error) { return { err: error }; }
-  var method_name = action + 'Error';
+  var method_name = action + 'Check';
   error = this[method_name]();
   if(!!error) { return { err: error }; }
   return true;
