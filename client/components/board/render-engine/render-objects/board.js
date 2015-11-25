@@ -170,29 +170,8 @@ Board.prototype.drawPort = function(location1, location2, resource){
 };
 
 Board.prototype.indicesToCoordinates = function(indices){
-	var small_num = this.small_num;
-	var big_num = this.big_num;
-	var num_rows = (2*(big_num-small_num)) + 1;
-	var row = indices.row;
-	var col = indices.col;
-	var middle_row = Math.floor(num_rows/2);
-	var x_pos = 0;
-	if(row!==middle_row){
-		if(row<=middle_row){
-			var half_col = (small_num+(row%middle_row))/2;
-		}else if(row===num_rows-1){
-			half_col = small_num/2;
-		} else {
-			half_col = (big_num-(row%middle_row))/2;
-		}
-	} else {
-		half_col = big_num/2;
-	}
-	half_col-=0.5;
-	x_pos=(col-half_col) * this.side_length * 2;
-	var z_pos = (row-middle_row) * this.side_length * 2;
-	z_pos-=(row-middle_row)*10*this.scale;
-	return { x: -x_pos, z: -z_pos };
+	var converter = new TileIndicesToCoordinatesConverter(this.tiles, this.side_length, this.bevelSize);
+	return converter.convert(indices);
 };
 
 Board.prototype.coordinatesToVertices = function(coordinates){
