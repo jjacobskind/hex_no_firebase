@@ -227,47 +227,9 @@ Board.prototype.coordinatesToVertices = function(coordinates){
 	return [z_index, col];
 };
 
-Board.prototype.verticesToCoordinates = function(location){
-	var z = location.row;
-	var x = location.col;
-	var small_num = this.small_num;
-	var big_num = this.big_num;
-	var num_rows = (4*(big_num-small_num)) + 4;
-
-	// Calculate x-coordinate of vertex
-	var num_cols = this.vertices[z].length;
-	var offset = num_cols-1;	//set the number of tile-widths from the center vertex in the row to the edge of the board
-
-	var side_length = this.side_length + this.bevelSize;
-
-	var middle_radius = (side_length * Math.sin(Math.PI/3));
-	var left_edge = middle_radius*offset;
-	var x_coord = left_edge - (middle_radius * x * 2);
-
-	// Calculate z-coordinate of vertex
-	var short_distance = side_length * Math.cos(Math.PI/3);
-	var temp_row = (num_rows-1)/2;
-	if(z>temp_row){
-		var direction = -1;
-	} else {
-		direction = 1;
-	}
-
-	//Board coordinates drop as row gets higher, so z_offset and temp_row need to iterate in opposite directions
-	var z_offset = side_length*0.5*direction;
-	temp_row -= 0.5 * direction;
-
-	var intervals = [short_distance, side_length];
-	var i=0;
-
-
-	while(temp_row!==z && z !== undefined){
-		temp_row-=direction;
-		z_offset += direction * intervals[i%2];
-		i++;
-	}
-
-	return { x: x_coord, z: z_offset };
+Board.prototype.verticesToCoordinates = function(indices) {
+	converter = new VertexIndicesToCoordinatesConverter(this.vertices, this.side_length, this.bevelSize);
+	return converter.convert(indices);
 };
 
 Board.prototype.buildRoad = function(playerID, location1, location2){
