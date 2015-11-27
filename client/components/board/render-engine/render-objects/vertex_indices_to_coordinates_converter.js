@@ -19,7 +19,6 @@ VertexIndicesToCoordinatesConverter.prototype.calculateX = function(indices) {
 
 VertexIndicesToCoordinatesConverter.prototype.calculateZ = function(indices) {
   var offset = this.calculateZOffset(indices.row);
-  if(indices.row === 7 && indices.col == 3) { console.log(offset); }
   return offset * this.true_side_length;
 };
 
@@ -33,14 +32,18 @@ VertexIndicesToCoordinatesConverter.prototype.distanceToBevelledCorner = functio
 };
 
 VertexIndicesToCoordinatesConverter.prototype.calculateZOffset = function(row_num) {
-  var center_row = this.vertices.length / 2;
-  var row_gaps = [0.5, 1];
-  var row_diff = row_num - center_row;
-  var counter = Math.abs(row_diff) - 0.5;
+  // from z = 0, the distance to the nearest vertex row is 0.5 side length
+  // after that, distance between vertex rows alternates between 0.5 and 1 (averaging 0.75/row)
+
+  var center_row_index = this.vertices.length / 2;
+  if(row_num < center_row_index) { center_row_index--; }
   var offset = 0.5;
-  for(var i = 0;i < counter ; i++) {
+  var row_gaps = [0.5, 1];
+  var higher_row = Math.max(center_row_index, row_num);
+  var lower_row = Math.min(center_row_index, row_num);
+  for(var i = lower_row; i < higher_row; i++) {
     offset += row_gaps[i % row_gaps.length];
   }
-  if (row_diff > 0) { offset *= -1; }
+  if(row_num < this.vertices.length / 2) { offset *= -1; }
   return offset;
 };

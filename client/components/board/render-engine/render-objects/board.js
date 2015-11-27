@@ -3,6 +3,7 @@ var Board = function(scene, game, scale) {
 
 	// Board values
 	this.vertices = game.board.vertices; 	//will be overwritten with with game rendering board vertices
+	this.tiles = game.board.tiles;
 	this.board_navigator = new BoardNavigator(this.vertices);
 	this.robbers = [];
 	this.small_num = game.board.tiles[0].length;
