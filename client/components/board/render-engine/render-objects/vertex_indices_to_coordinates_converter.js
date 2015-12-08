@@ -12,8 +12,8 @@ VertexIndicesToCoordinatesConverter.prototype.convert = function(indices){
 
 VertexIndicesToCoordinatesConverter.prototype.calculateX = function(indices) {
   var row_length = this.vertices[indices.row].length;
-  var center = row_length / 2;
-  var offset = center - indices.col - 0.5;
+  var center = (row_length - 1) / 2;
+  var offset = indices.col - center;
   return offset * this.tile_width;
 };
 
@@ -32,18 +32,12 @@ VertexIndicesToCoordinatesConverter.prototype.distanceToBevelledCorner = functio
 };
 
 VertexIndicesToCoordinatesConverter.prototype.calculateZOffset = function(row_num) {
-  // from z = 0, the distance to the nearest vertex row is 0.5 side length
-  // after that, distance between vertex rows alternates between 0.5 and 1 (averaging 0.75/row)
-
-  var center_row_index = this.vertices.length / 2;
-  if(row_num < center_row_index) { center_row_index--; }
-  var offset = 0.5;
+  var one_fourth_rows = this.vertices.length / 4;
+  var first_row_offset = one_fourth_rows + ((one_fourth_rows - 1) / 2);
+  var offset_sum = 0;
   var row_gaps = [0.5, 1];
-  var higher_row = Math.max(center_row_index, row_num);
-  var lower_row = Math.min(center_row_index, row_num);
-  for(var i = lower_row; i < higher_row; i++) {
-    offset += row_gaps[i % row_gaps.length];
+  for(var i = 0; i < row_num; i++) {
+    offset_sum += row_gaps[i % row_gaps.length];
   }
-  if(row_num < this.vertices.length / 2) { offset *= -1; }
-  return offset;
+  return first_row_offset - offset_sum;
 };

@@ -175,59 +175,6 @@ Board.prototype.indicesToCoordinates = function(indices){
 	return converter.convert(indices);
 };
 
-Board.prototype.coordinatesToVertices = function(coordinates){
-	var small_num = this.small_num;
-	var big_num = this.big_num;
-	var num_rows = (4*(big_num-small_num)) + 4;
-	var x = coordinates[0];
-	var z = coordinates[1];
-
-	var side_length = this.side_length + this.bevelSize;
-	var half_length = side_length/2;
-	var short_distance = side_length * Math.cos(Math.PI/3);
-
-	// Calculate row
-	var remainder = Math.abs(z) - short_distance;
-
-	var intervals = [short_distance, side_length];
-	var i=0;
-	while(remainder>=-10){
-		remainder-= intervals[i%2];
-		i++;
-	}
-	if(z!==Math.abs(z)){
-		z_index = (num_rows/2) + i -1;
-	} else {
-		z_index = (num_rows/2) - i;
-	}
-
-	if(z_index<0 || z_index>num_rows){
-		return -1;
-	}
-
-	// Calculate column
-	var middle_radius = (side_length * Math.sin(Math.PI/3));
-	var x_index = Math.round(x/middle_radius);
-
-	if(z_index===0 || z_index===num_rows-1){
-		var num_cols= small_num;
-	}
-	else if(z_index===num_rows/2 || z_index===(num_rows/2)-1){
-		num_cols = big_num+1;
-	} else if(z_index<=num_rows/2) {
-		num_cols = Math.ceil(z_index/2)+small_num;
-	} else {
-		num_cols = Math.floor((num_rows-z_index)/2) + small_num;
-	}
-	var half_col = num_cols/2;
-	var col = Math.floor(half_col + (x_index/2));
-
-	if(col<0 || col>num_cols){
-		return -1;
-	}
-	return [z_index, col];
-};
-
 Board.prototype.verticesToCoordinates = function(indices) {
 	converter = new VertexIndicesToCoordinatesConverter(this.vertices, this.side_length, this.bevelSize);
 	return converter.convert(indices);
@@ -249,6 +196,7 @@ Board.prototype.populateBoard = function(tiles) {
 			var property_type = this.vertices[row][col].property_type;
 			var owner = this.vertices[row][col].owner
 			if(!!property_type){
+				console.log(row, col);
 				obj.building = new Building(this, property_type, owner, { row: row, col: col });
 				this.scene.add(obj.building.building);
 			}
@@ -328,21 +276,10 @@ Board.prototype.getTile = function(coords, cb, indices1){
 	return false;
 };
 
-Board.prototype.getVertex = function(coords, cb){
-	var x =- coords.x, z = coords.z;
-	var radius = 15 * this.scale;
-	for(var row=0, num_rows=this.vertices.length; row<num_rows; row++){
-		for(var col=0, num_cols=this.vertices[row].length; col<num_cols; col++){
-			var vertex_coords = this.verticesToCoordinates({ row: row, col: col });
-			var x_diff = vertex_coords.x - x;
-			var z_diff = vertex_coords.z - z;
-			var distance_from_vertex = Math.sqrt(Math.pow(x_diff, 2) + Math.pow(z_diff, 2));
-			if(distance_from_vertex<radius){
-				return { row: row, col: col };
-			}
-		}
-	}
-	return false;
+Board.prototype.getVertex = function(coordinates){
+	var vertex_getter = new CoordinatesToVertexConverter(this.vertices, this.side_length, this.bevelSize, this.scale);
+	var indices = vertex_getter.convert(coordinates);
+	return indices;
 };
 
 Board.prototype.getRoad = function(coords){
