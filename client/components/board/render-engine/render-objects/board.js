@@ -276,7 +276,7 @@ Board.prototype.getTile = function(coords, cb, indices1){
 };
 
 Board.prototype.getVertex = function(coordinates){
-	var vertex_getter = new CoordinatesToVertexConverter(this.vertices, this.side_length, this.bevelSize, this.scale);
+	var vertex_getter = new CoordinatesToVertexIndicesConverter(this.vertices, this.side_length, this.bevelSize, this.scale);
 	var indices = vertex_getter.convert(coordinates);
 	return indices;
 };
