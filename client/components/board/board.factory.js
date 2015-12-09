@@ -100,7 +100,7 @@ angular.module('hexIslandApp')
 	      var distance = - camera.position.y / dir.y;
 
 	      var pos = camera.position.clone().add( dir.multiplyScalar( distance ) );
-	      pos.x*= -1;
+
 	      var click_coordinates = { x: pos.x, z: pos.z };
 
 	      if(!!someAction){

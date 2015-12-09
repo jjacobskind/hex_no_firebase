@@ -1,7 +1,7 @@
 var CoordinatesToVertexConverter = function(vertices, side_length, bevel_size, scale) {
   this.coordinates_getter = new VertexIndicesToCoordinatesConverter(vertices, side_length, bevel_size);
   this.vertices = vertices;
-  this.radius = 15 * scale;
+  this.radius = 5 * scale;
 };
 
 CoordinatesToVertexConverter.prototype.convert = function(coordinates) {
@@ -34,8 +34,8 @@ CoordinatesToVertexConverter.prototype.calculateColumn = function(row, coordinat
     var x_diff = x - coordinates.x;
 
     if(Math.abs(x_diff) < this.radius) { return mid_col; }
-    if(coordinates.x < x) { high_col = mid_col - 1; }
-    else { low_col = mid_col + 1; }
+    if(coordinates.x < x) { low_col = mid_col + 1; }
+    else { high_col = mid_col - 1; }
   }
   return false;
 };

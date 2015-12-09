@@ -13,7 +13,7 @@ VertexIndicesToCoordinatesConverter.prototype.convert = function(indices){
 VertexIndicesToCoordinatesConverter.prototype.calculateX = function(indices) {
   var row_length = this.vertices[indices.row].length;
   var center = (row_length - 1) / 2;
-  var offset = indices.col - center;
+  var offset = center - indices.col;
   return offset * this.tile_width;
 };
 

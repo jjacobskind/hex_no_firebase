@@ -196,7 +196,6 @@ Board.prototype.populateBoard = function(tiles) {
 			var property_type = this.vertices[row][col].property_type;
 			var owner = this.vertices[row][col].owner
 			if(!!property_type){
-				console.log(row, col);
 				obj.building = new Building(this, property_type, owner, { row: row, col: col });
 				this.scene.add(obj.building.building);
 			}

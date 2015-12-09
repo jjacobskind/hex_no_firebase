@@ -24,7 +24,10 @@ VertexBuilder.prototype.isAdjacentVertexOwned = function() {
   var navigator = new BoardNavigator(this.vertices);
   for(var i = 0, len = directions.length; i < len; i++) {
     var adjacent_vertex_coords = navigator.getRoadDestination(vertex_coords, directions[i]);
-    var adjacent_vertex = this.vertices[adjacent_vertex_coords.row][adjacent_vertex_coords.col];
+    var adjacent_vertex = null;
+    if(adjacent_vertex_coords) {
+      adjacent_vertex = this.vertices[adjacent_vertex_coords.row][adjacent_vertex_coords.col];
+    }
     if(!!adjacent_vertex && adjacent_vertex.owner !== null) { return true; }
   }
   return false;
