@@ -55,7 +55,7 @@ angular.module('hexIslandApp')
 
 		var updateGameProperties = function(data){
 			for(var key in data.game){
-				if(key !== 'boardVertices' && key !== 'boardTiles') {
+				if(key !== 'vertices' && key !== 'tiles') {
 					game[key] = data.game[key];
 					if(key === 'players') { $rootScope.playerData = game.players[authFactory.getPlayerID()]; }
 					if(key === 'currentPlayer') { $rootScope.currentPlayer = game.currentPlayer; }

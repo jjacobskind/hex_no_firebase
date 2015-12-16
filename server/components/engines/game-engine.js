@@ -235,8 +235,8 @@ GameEngine.prototype.buildRoad = function(playerID, location, direction) {
   var resources_available = resource_manager.areResourcesAvailable(playerID, 'road');
   if(resources_available !== true) { return resources_available; }
 
-  var road_builder = new RoadBuilder(this.vertices, this.players[playerID], this.boardSetupPhase);
-  return road_builder(location, direction);
+  var road_builder = new RoadBuilder(this.board.vertices, this.players[playerID], this.boardSetupPhase);
+  return road_builder.placeRoad(location, direction);
 };
 
 GameEngine.prototype.moveRobber = function(playerID, destination, origin) {

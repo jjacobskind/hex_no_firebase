@@ -275,77 +275,14 @@ Board.prototype.getTile = function(coords, cb, indices1){
 	return false;
 };
 
-Board.prototype.getVertex = function(coordinates){
+Board.prototype.getVertex = function(coordinates) {
 	var vertex_getter = new CoordinatesToVertexIndicesConverter(this.vertices, this.side_length, this.bevelSize, this.scale);
-	var indices = vertex_getter.convert(coordinates);
-	return indices;
+	return vertex_getter.convert(coordinates);
 };
 
-Board.prototype.getRoad = function(coords){
-	var x = -coords.x, z = coords.z;
-	var bevel_width = this.bevelSize;
-	var road_width = bevel_width * 2;
-	var road_length = this.side_length + (this.bevelSize*2);
-	var vertex1, vertex2;
-	for(var row=0, num_rows=this.vertices.length; !vertex1 && row<num_rows; row++){
-		for(var col=0, num_cols=this.vertices[row].length; !vertex1 && col<num_cols; col++){
-			var vertex_coords = this.verticesToCoordinates({ row: row, col: col });
-			var x_diff = vertex_coords.x - x;
-			var z_diff = vertex_coords.z - z;
-			var distance_from_vertex = Math.sqrt(Math.pow(x_diff, 2) + Math.pow(z_diff, 2));
-			if(distance_from_vertex<road_length){
-				vertex1 = { row: row, col: col };
-
-			}
-		}
-	}
-
-	if(!vertex1){
-		return null;
-	}
-
-	// Determine whether the vertical road was clicked
-	vertex2 = this.board_navigator.getRoadDestination(vertex1, 'vertical');
-	var coords1 = this.verticesToCoordinates(vertex1);
-	if(!!vertex2){
-		var coords2 = this.verticesToCoordinates(vertex2);
-		if(x<=(coords1.x + bevel_width) && x>=(coords1.x - bevel_width) 		//checking if x click coordinate lies within road width
-		&& (z<=coords1.z && z>=coords2.z))	{							//vertex1 z-coordinate will always be higher than vertex2 due to top-down iteration through vertices
-			return { start_vertex: vertex1, direction: 'vertical' };
-		}
-	}
-
-	// Vertical road wasn't clicked, so rule out the left or right road based on x-coordinates
-	var adjacent_vertices = [this.board_navigator.getRoadDestination(vertex1, 'left')];
-	adjacent_vertices.push(this.board_navigaot.getRoadDestination(vertex1, 'right'));
-	var count = 2;
-	while(adjacent_vertices.length){
-		count--;
-		var temp_vertex = adjacent_vertices.pop();
-		coords2 = this.verticesToCoordinates(temp_vertex);
-		if(x>= Math.min(coords1.x, coords2.x) && x<= Math.max(coords1.x, coords2.x)){
-			vertex2 = temp_vertex;
-			break;
-		}
-	}
-
-
-	// Since vertex 1 always has higher z than vertex2, find how far click-x is from vertex1-x,
-	// calculate z-offset for center of road at that x-offset, and subtract from vertex-z
-	x_diff = Math.abs(coords1.x - x);
-	bevel_width *= 1.5; //factoring in extra wiggle room for clicking
-	var road_vertical_center = coords1.col - (Math.tan(Math.PI/6) * x_diff);
-	if(z>=road_vertical_center - bevel_width && z<=road_vertical_center + bevel_width){
-		switch(count){
-			case 1:
-				var direction = 'right';
-				break;
-			case 0:
-				direction = 'left';
-		}
-		return { start_vertex: vertex1, direction: direction };
-	}
-	return false;
+Board.prototype.getRoad = function(coordinates) {
+	var road_getter = new CoordinatesToRoadIndicesConverter(this.vertices, this.side_length, this.bevelSize);
+	return road_getter.convert(coordinates);
 };
 
 // Function to move the robber
