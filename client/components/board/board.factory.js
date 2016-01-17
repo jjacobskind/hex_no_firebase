@@ -82,26 +82,8 @@ angular.module('hexIslandApp')
 
 	    // Click event handler calculates the  x & z coordinates on the y=0 plane that correspond to where user clicked on canvas
 	    renderer.domElement.addEventListener('click', function(event){
-
-	      controls.autoRotate=false;
-
-	      var vector = new THREE.Vector3();
-
-	      var canvas_position = $("#board-canvas").offset();
-	      vector.set(
-	          ((event.clientX - canvas_position.left) / canvas_width ) * 2 - 1,
-	          - ( (event.clientY - canvas_position.top) / canvas_height ) * 2 + 1,
-	          0.5 );
-
-	      vector.unproject( camera );
-
-	      var dir = vector.sub( camera.position ).normalize();
-
-	      var distance = - camera.position.y / dir.y;
-
-	      var pos = camera.position.clone().add( dir.multiplyScalar( distance ) );
-
-	      var click_coordinates = { x: pos.x, z: pos.z };
+				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
+				var click_coordinates = coordinate_calculator.calculate();
 
 	      if(!!someAction){
 	        var success = someAction(click_coordinates);
