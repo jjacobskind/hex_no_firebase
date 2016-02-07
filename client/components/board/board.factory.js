@@ -2,7 +2,7 @@
 
 angular.module('hexIslandApp')
 	.factory('boardFactory', function($state, $rootScope, authFactory) {
-	    var camera, scene, renderer, controls, light, water, game_board, someAction;
+	    var camera, scene, renderer, controls, light, water, game_board, someAction, selected_robber;
 
 	    var canvas_width = $(window).width();
 	    var canvas_height = $(window).height();
@@ -89,6 +89,31 @@ angular.module('hexIslandApp')
 	        var success = someAction(click_coordinates);
 	        unset_someAction(success);
 	      }
+	    });
+
+			renderer.domElement.addEventListener('mousedown', function(event){
+				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
+				var click_coordinates = coordinate_calculator.calculate();
+
+				selected_robber = game_board.getObject(camera, click_coordinates, 'robber');
+				if(!selected_robber) { return; }
+				controls.noRotate = true;
+	    });
+
+			renderer.domElement.addEventListener('mousemove', function(event) {
+				if(!selected_robber) { return; }
+				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
+				var coordinates = coordinate_calculator.calculate();
+				selected_robber.object.position.set(coordinates.x, 0, coordinates.z);
+	    });
+
+			renderer.domElement.addEventListener('mouseup', function(event) {
+				controls.noRotate = false;
+				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
+				var mouse_coordinates = coordinate_calculator.calculate();
+				var selected_tile = game_board.getObject(camera, mouse_coordinates, 'tile');
+				selected_robber.object.position.set(selected_tile.object.position.x, 0, selected_tile.object.position.z);
+				selected_robber = null;
 	    });
 	    return renderer;
 	  };

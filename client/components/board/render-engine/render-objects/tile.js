@@ -25,6 +25,7 @@ Tile.prototype.drawTile = function(coordinates, resource) {
 	var tile = new THREE.Mesh( this.tileGeometry, materials );
 	tile.position.set( coordinates.x, 0, coordinates.z );
 	tile.rotation.set(Math.PI/2, 0, Math.PI/6);
+	tile.name = 'tile';
 	return tile;
 };
 

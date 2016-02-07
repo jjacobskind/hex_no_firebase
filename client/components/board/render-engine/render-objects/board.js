@@ -248,31 +248,17 @@ Board.prototype.drawRobber = function(location){
 
 };
 
-Board.prototype.getTile = function(coords, cb, indices1){
-	var x=-coords[0], z=coords[1];
-	var side_length = this.side_length + this.bevelSize;
-	for(var row=0, num_rows=this.tiles.length; row<num_rows; row++){
-		for(var col=0, num_cols=this.tiles[row].length; col<num_cols; col++){
-			var tile_center = this.indicesToCoordinates({ row: row, col: col });
-			var dist_from_tip = side_length - Math.abs(tile_center.z - z);
-			if(dist_from_tip<side_length){		//Checking if z coordinate is within the highest/lowest tip of tile
-				var dist_from_center = Math.abs(tile_center.x - x);
+Board.prototype.getObject = function(camera, click_coordinates, object_type) {
+	var vector = new THREE.Vector3(click_coordinates.x, 1, click_coordinates.z);
 
-				// Set meximum x offset portion of tile can have from its center for a given vertical coordinate
-				var horizontal_range = Math.tan(Math.PI/6) * dist_from_tip;
-
-				// Limit horizontal range for the center "rectangle" portion of tile
-				if(horizontal_range> side_length*Math.sin(Math.PI/6)) {
-					horizontal_range = side_length*Math.sin(Math.PI/6);
-				}
-
-				if(dist_from_center < horizontal_range*2){
-					return { row: row, col: col };
-				}
-			}
-		}
+	window.raycaster = new THREE.Raycaster();
+	raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+	var intersects = raycaster.intersectObjects( this.scene.children);
+	for(var i = 0, len = intersects.length; i < len; i++) {
+		var obj = intersects[i].object;
+		if(obj.name === object_type) { return intersects[i]; }
 	}
-	return false;
+	return null;
 };
 
 Board.prototype.getVertex = function(coordinates) {
@@ -283,22 +269,4 @@ Board.prototype.getVertex = function(coordinates) {
 Board.prototype.getRoad = function(coordinates) {
 	var road_getter = new CoordinatesToRoadIndicesConverter(this.vertices, this.side_length, this.bevelSize);
 	return road_getter.convert(coordinates);
-};
-
-// Function to move the robber
-// Refactor this later on to provide for multiple robbers,using a two-click process to select the correct robber and select the destination
-Board.prototype.moveRobber = function(destination, origin){
-	var destination_tile_center = this.indicesToCoordinates(destination);
-	if(this.robbers.length===1){
-		this.robbers[0].position.set(destination_tile_center.x, 0, destination_tile_center.z);
-	} else {
-		var origin_tile_center = this.indicesToCoordinates(origin);
-		for(var i=0, len=this.robbers.length; i<len; i++) {
-			if(this.robbers[i].position.x=== origin_tile_center.x && this.robbers[i].position.z=== origin_tile_center.z) {
-				this.robbers[i].position.set(destination_tile_center.x, 0, destination_tile_center.z);
-				return null;
-			}
-		}
-	}
-	return null;
 };

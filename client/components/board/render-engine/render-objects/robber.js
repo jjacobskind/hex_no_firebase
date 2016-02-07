@@ -9,6 +9,7 @@ var Robber = function(board, location) {
 
 	var coords = this.board.indicesToCoordinates(location);
 	robber.position.set(coords.x,0,coords.z);
+	robber.name = 'robber';
 	return robber;
 };
 
