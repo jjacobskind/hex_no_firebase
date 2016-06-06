@@ -70,6 +70,7 @@ Tile.prototype.drawChit = function(coordinates, chit_number) {
 	var num_chip = new THREE.Mesh(this.chitGeometry, new THREE.MeshFaceMaterial(materials));
 	num_chip.position.set(coordinates.x, 0.5*this.board.scale, coordinates.z);
 	num_chip.rotation.set(Math.PI/2, Math.PI, 0);
+	num_chip.name = 'number_chip';
 	return num_chip;
 };
 

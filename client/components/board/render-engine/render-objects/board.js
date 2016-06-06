@@ -166,6 +166,7 @@ Board.prototype.drawPort = function(location1, location2, resource){
 	// }
 	port.position.set(x_avg, 1, z_avg);
 	port.rotation.set(Math.PI/2, 0, 0);
+	port.name = 'port_chip';
 	this.ports.push(port);
 	this.scene.add(port);
 };

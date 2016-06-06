@@ -2,152 +2,67 @@
 
 angular.module('hexIslandApp')
 	.factory('boardFactory', function($state, $rootScope, authFactory) {
-	    var camera, scene, renderer, controls, light, water, game_board, someAction, selected_robber;
+    var camera, scene, sceneProperties, renderer, controls, light, water, game_board, someAction, selected_robber;
 
-	    var canvas_width = $(window).width();
-	    var canvas_height = $(window).height();
+    var canvas_width = $(window).width();
+    var canvas_height = $(window).height();
 
-	    // Game view data that needs to be displayed, but not on WebGL canvas
-	    var players, buildMode = false;
+    // Game view data that needs to be displayed, but not on WebGL canvas
+    var players, buildMode = false;
 
-	    var init = function(game) {
+    var init = function(game) {
+			sceneProperties = new SceneInitializer(renderer, canvas_width, canvas_height);
+			scene = sceneProperties.scene;
 
-	      scene = new THREE.Scene();
+      game_board = new Board(scene, game);
 
+      sceneProperties.controls.addEventListener( 'change', function() {
+        var num_rows = game_board.tiles.length;
+        var angle = Math.atan(sceneProperties.camera.position.x/sceneProperties.camera.position.z);
+        if(sceneProperties.camera.position.z>0){
+          angle+= Math.PI;
+        }
 
-	      camera = new THREE.PerspectiveCamera( 45, canvas_width / canvas_height, 1, 700 );
-	      var camera_x = 0;
-	      var camera_z = -300;
-	      camera.position.set( camera_x, 200, camera_z );
+        for(var row=0; row<num_rows; row++){
+          var num_cols = game_board.tiles[row].length;
+          for(var col=0; col<num_cols; col++){
+            if(!!game_board.tiles[row][col].chit){
+              game_board.tiles[row][col].chit.rotation.set(Math.PI/2, Math.PI, angle);
+            }
+          }
+        }
 
-
-	      controls = new THREE.OrbitControls( camera, renderer.domElement );
-	      controls.noPan = true;
-	      controls.maxPolarAngle = Math.PI/2.5;
-	      controls.minDistance=5;
-	      controls.maxDistance=500;
-
-	      scene.add( new THREE.AmbientLight( 0x222222 ) );
-
-	      light = new THREE.PointLight( 0xffffff );
-	      light.position.copy( camera.position );
-	      scene.add( light );
-
-	      scene.add( renderWater() );
-
-	      game_board = new Board(scene, game);
-
-	      controls.addEventListener( 'change', function() {
-	        var num_rows = game_board.tiles.length;
-	        var angle = Math.atan(camera.position.x/camera.position.z);
-	        if(camera.position.z>0){
-	          angle+= Math.PI;
-	        }
-
-	        for(var row=0; row<num_rows; row++){
-	          var num_cols = game_board.tiles[row].length;
-	          for(var col=0; col<num_cols; col++){
-	            if(!!game_board.tiles[row][col].chit){
-	              game_board.tiles[row][col].chit.rotation.set(Math.PI/2, Math.PI, angle);
-	            }
-	          }
-	        }
-
-	        for(var i=0, len=game_board.ports.length; i<len;i++){
-	          game_board.ports[i].rotation.set(Math.PI/2, Math.PI, angle);
-	        }
-	      });
+        for(var i=0, len=game_board.ports.length; i<len;i++){
+          game_board.ports[i].rotation.set(Math.PI/2, Math.PI, angle);
+        }
+      });
 	  }
 
 	  var animate = function() {
-	      light.position.copy(camera.position);
-	      water.material.uniforms.time.value += 1.0 / 30.0;
+      sceneProperties.light.position.copy(sceneProperties.camera.position);
+      sceneProperties.water.material.uniforms.time.value += 1.0 / 30.0;
 
-	      renderer.render( scene, camera );
+      renderer.render( sceneProperties.scene, sceneProperties.camera );
 
 	    setTimeout(function(){
 	      requestAnimationFrame(animate);
-	      controls.update();
+	      sceneProperties.controls.update();
 
 	    }, 60);
 	  }
 
-	  var createRenderer = function(){
-
-	    var renderer = new THREE.WebGLRenderer({antialias:true});
-	    renderer.setClearColor( 0xA1CEED );
-	    renderer.setSize( canvas_width, canvas_height );
-
-	    renderer.domElement.id="board-canvas";
-
-	    // Click event handler calculates the  x & z coordinates on the y=0 plane that correspond to where user clicked on canvas
-	    renderer.domElement.addEventListener('click', function(event){
-				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
-				var click_coordinates = coordinate_calculator.calculate();
-
-	      if(!!someAction){
-	        var success = someAction(click_coordinates);
-	        unset_someAction(success);
-	      }
-	    });
-
-			renderer.domElement.addEventListener('mousedown', function(event){
-				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
-				var click_coordinates = coordinate_calculator.calculate();
-
-				selected_robber = game_board.getObject(camera, click_coordinates, 'robber');
-				if(!selected_robber) { return; }
-				controls.noRotate = true;
-	    });
-
-			renderer.domElement.addEventListener('mousemove', function(event) {
-				if(!selected_robber) { return; }
-				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
-				var coordinates = coordinate_calculator.calculate();
-				selected_robber.object.position.set(coordinates.x, 0, coordinates.z);
-	    });
-
-			renderer.domElement.addEventListener('mouseup', function(event) {
-				controls.noRotate = false;
-				var coordinate_calculator = new ClickCoordinateCalculator($('#board-canvas'), event, camera, { width: canvas_width, height: canvas_height });
-				var mouse_coordinates = coordinate_calculator.calculate();
-				var selected_tile = game_board.getObject(camera, mouse_coordinates, 'tile');
-				selected_robber.object.position.set(selected_tile.object.position.x, 0, selected_tile.object.position.z);
-				selected_robber = null;
-	    });
-	    return renderer;
-	  };
-
-	  var renderWater = function(){
-
-	    var waterNormals = new THREE.ImageUtils.loadTexture( 'assets/images/waternormals.jpg' );
-	    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
-
-	    water = new THREE.Water( renderer, camera, scene, {
-	      waterNormals: waterNormals,
-	      alpha:  0.8,
-	      sunDirection: light.position.clone().normalize(),
-	      sunColor: 0xffffff,
-	      waterColor: 0x3D50E0,
-	      distortionScale: 50.0,
-	    } );
-
-	    var mirrorMesh = new THREE.Mesh(
-	      new THREE.PlaneBufferGeometry( 2400, 2400 ),
-	      water.material
-	    );
-
-	    mirrorMesh.rotation.x = - Math.PI * 0.5;
-	    return mirrorMesh;
-	  };
+	  var createRenderer = function() {
+			var renderInit = new RendererInitializer(canvas_width, canvas_height);
+			return renderInit.renderer;
+		}
 
 	  $(window).on('resize', function(){
 	    canvas_width = $(window).width();
 	    canvas_height = $(window).height();
 	    $("#board_container").height(canvas_height);
-	    if(!!camera){
-	      camera.aspect = (canvas_width/canvas_height);
-	      camera.updateProjectionMatrix();
+	    if(!!sceneProperties.camera){
+	      sceneProperties.camera.aspect = (canvas_width/canvas_height);
+	      sceneProperties.camera.updateProjectionMatrix();
 	    }
 	    if(!!renderer){
 	      renderer.setSize(canvas_width, canvas_height);
@@ -167,9 +82,7 @@ angular.module('hexIslandApp')
 	      game_board.buildRoad(player, vertex1, vertex2);
 	    },
 	    drawGame: function(game) {
-	      if(!renderer){
-	        renderer = createRenderer();
-	      }
+				renderer = renderer || createRenderer();
 	      init(game);
 	    },
 	    insert: function() {
