@@ -38,9 +38,14 @@ module.exports = function(app) {
     secret: config.secrets.session,
     resave: true,
     saveUninitialized: true,
-    store: new mongoStore({ mongoose_connection: mongoose.connection })
+    store: new mongoStore({
+      host: '127.0.0.1',
+      port: 27017,
+      db: 'hex-dev',
+      url: 'mongodb://127.0.0.1/hex-dev'
+    })
   }));
-  
+
   if ('production' === env) {
     app.use(favicon(path.join(config.root, 'public', 'favicon.ico')));
     app.use(express.static(path.join(config.root, 'public')));
