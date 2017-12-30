@@ -21,9 +21,6 @@ $fa-font-path: "/bower_components/font-awesome/fonts";
 	text-align:center;
 };
 
-// Component styles are injected through grunt
-// injector
 @import 'account/login/login.scss';
 @import 'admin/admin.scss';
 @import 'modal/modal.scss';
-// endinjector
