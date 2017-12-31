@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
     .factory('authFactory', function(Auth){
         var playerData, playerID, playerDisplayName;
         return {

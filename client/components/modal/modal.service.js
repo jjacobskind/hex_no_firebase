@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .factory('Modal', function ($rootScope, $modal) {
     /**
      * Opens a modal

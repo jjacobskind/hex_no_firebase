@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .controller('LoginCtrl', function ($scope, Auth, $location, engineFactory) {
     $scope.user = {};
     $scope.errors = {};

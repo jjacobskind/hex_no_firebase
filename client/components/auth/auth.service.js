@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .factory('Auth', function Auth($location, $rootScope, $http, $state, User, $cookieStore, $q) {
     var currentUser = {};
     if($cookieStore.get('token')) {

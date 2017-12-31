@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .controller('BoardCtrl', function(boardFactory, engineFactory, authFactory, $scope, $state, $rootScope, $timeout, socket){
     if(!engineFactory.getGame().gameBoard.game.players){
       $state.go('main.menu');

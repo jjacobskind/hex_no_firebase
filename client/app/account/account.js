@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .config(function ($stateProvider) {
     $stateProvider
       // .state('login', {

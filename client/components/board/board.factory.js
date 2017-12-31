@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
 	.factory('boardFactory', function($state, $rootScope, authFactory) {
 	    var camera, scene, renderer, controls, light, water, game_board, someAction;
 

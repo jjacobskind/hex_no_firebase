@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .controller('GameCtrl', function($state, engineFactory, game){
     // Will contain all interactions between engineFactory and board directive
     var gameData = engineFactory.prepGameOnClient(game);

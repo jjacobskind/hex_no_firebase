@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
 	.directive('board', function(boardFactory) {
 	    return {
 	      restrict: 'E',

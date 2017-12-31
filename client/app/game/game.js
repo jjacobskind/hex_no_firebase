@@ -1,7 +1,6 @@
-'use strict';
+import {create, join, fetch} from '../../api/game'
 
-angular.module('hexIslandApp')
-  .config(function ($stateProvider) {
+export default ($stateProvider) => {
 
     var testQueryParameters = [
       'task',
@@ -18,31 +17,30 @@ angular.module('hexIslandApp')
         resolve: {
 
           game: function($http, $stateParams) {
-            var gameID = $stateParams.id;
+            var gameId = $stateParams.id;
             var task = $stateParams.task;
-
-            var callback = function(game) {
-              if($stateParams.id !== 'test') {
-                for(var key in $stateParams) { $stateParams[key] = null; }
-                $stateParams.id = game.data._id;
-              }
-              return game.data;
-            }
-
-            var err_callback = function(data) {
-              console.log(data);
-            }
+            let request;
 
             if(task === 'create') {
-              return $http.post('/api/games', { size: $stateParams.size }).then(callback, err_callback);
+              request = create($stateParams.size)
             } else if (task === 'join') {
-              return $http.post('/api/games/join', {gameID: gameID}).then(callback, err_callback);
-            } else if (gameID === 'test') {
-              return $http.put('/api/games/test', $stateParams).then(callback, err_callback);
-            } else if (!!gameID) {
-              return $http.get('/api/games/' + gameID).then(callback, err_callback);
+              request = join(gameId)
+            // } else if (gameID === 'test') {
+            //   return $http.put('/api/games/test', $stateParams).then(callback, err_callback);
+            } else if (!!gameId) {
+              request = fetch(gameId)
             }
+
+            return request
+              .then(game => {
+                if($stateParams.id !== 'test') {
+                  for(var key in $stateParams) { $stateParams[key] = null; }
+                  $stateParams.id = game._id;
+                }
+                return game;
+              })
+              .catch(console.error)
           }
         }
       });
-  });
+  }

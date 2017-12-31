@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
 	.factory('engineFactory', function($rootScope, $timeout, $http, $state, boardFactory, Auth, authFactory, socket){
 		var game = new GameEngine(3, 5);
 		var gameID;

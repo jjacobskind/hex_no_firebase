@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
   .controller('SettingsCtrl', function ($scope, User, Auth) {
     $scope.errors = {};
 

@@ -1,13 +1,13 @@
 'use strict';
 
-angular.module('hexIslandApp')
+hexIslandApp
 	.factory('socket', function ($rootScope, $state, Auth) {
 		var socket;
 
 	    return {
 	    	connect: function(gameID){
 				socket = io({query: {roomNumber: gameID, token: Auth.getToken()} });
-				
+
 				// Automatically logs out user and brings them to login screen if their token is invalid
 				socket.on('validation:forceLogout', function(){
 					Auth.logout();
@@ -27,7 +27,7 @@ angular.module('hexIslandApp')
 				});
 			},
 			on: function (eventName, callback) {
-				socket.on(eventName, function () {  
+				socket.on(eventName, function () {
 					var args = arguments;
 					$rootScope.$apply(function () {
 						callback.apply(socket, args);
