@@ -53,7 +53,7 @@ GameSchema.methods.addPlayer = function(user) {
 
   return Player.create(player_info)
     .then(function(player) {
-      self.players.push(player._id);
+      self.players.push(player);
       if(allSlotsFilled(self)) { self.areAllPlayersAdded = true; }
       self.save();
       return User.findById(user._id)

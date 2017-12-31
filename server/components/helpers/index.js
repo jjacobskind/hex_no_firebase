@@ -179,7 +179,7 @@ exports.processChatMessage = function(userID, gameID, data){
 		return obj;
 	}
 
-	return Game.findById(gameID).exec()
+	return Game.findByIdAndPopulate(gameID)
 		.then(function(game){
 			if(!game) { return null; }
 			var playerIndex = getPlayerIndex(game, userID);
@@ -191,7 +191,6 @@ exports.processChatMessage = function(userID, gameID, data){
 				game.chatMessages.push(messageObj);
 				game.save();
 			}
-
 			return messageObj;
 		});
 };
