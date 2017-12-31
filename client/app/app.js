@@ -1,5 +1,8 @@
 import angular from 'angular';
 
+require('angular-ui-router')
+require('angular-socket-io')
+
 angular.module('hexIslandApp', [
   'ngCookies',
   'ngResource',
@@ -52,3 +55,5 @@ angular.module('hexIslandApp', [
       });
     });
   });
+
+  export default angular;

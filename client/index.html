@@ -18,7 +18,7 @@
     <!-- build:css({.tmp,client}) app/app.css -->
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
     <link rel="stylesheet" href="app/normalise.css">
-    <link rel="stylesheet" href="app/app.css">
+    <link rel="stylesheet" href="app.css">
       <!-- injector:css -->
       <link rel="stylesheet" href="app/main/main.css">
       <link rel="stylesheet" href="app/normalise.css">
@@ -31,7 +31,7 @@
 
     <!--styles for UI Testing-->
     <!--<link rel="stylesheet" href="app/test.css">-->
-
+    <script src="bower_components/threejs/build/three.js"></script>
 
     <!-- socket.io -->
     <script src="https://cdn.socket.io/socket.io-1.2.1.js"></script>
@@ -66,13 +66,16 @@
     <![endif]-->
     <!-- build:js({client,node_modules}) app/vendor.js -->
       <!-- bower:js -->
-      <script src="bower_components/jquery/dist/jquery.js"></script>
-      <script src="bower_components/threejs/build/three.js"></script>
       <!-- endbower -->
     <!-- endbuild -->
 
         <!-- build:js({.tmp,client}) app/app.js -->
-        <script src="app/app.js"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        <script>window.ORIGINAL_JQUERY = $</script>
+        <script src="vendors.js"></script>
+
+        <script src="app.js"></script>
+        <script>window.$ = window.jQuery = ORIGINAL_JQUERY</script>
           <!-- injector:js -->
           <script src="components/board/render-engine/libraries/three.min.js"></script>
           <script src="components/game-engine/board-engine.js"></script>
