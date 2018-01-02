@@ -1,9 +1,3 @@
-/**
- * Express configuration
- */
-
-'use strict';
-
 var express = require('express');
 var favicon = require('serve-favicon');
 var morgan = require('morgan');
@@ -18,13 +12,15 @@ var passport = require('passport');
 var session = require('express-session');
 var mongoStore = require('connect-mongo')(session);
 var mongoose = require('mongoose');
+import {ejs} from 'consolidate';
 
 module.exports = function(app) {
   var env = app.get('env');
 
-  app.set('views', config.root + '/server/views');
-  app.engine('html', require('ejs').renderFile);
-  app.set('view engine', 'html');
+  app.set('view engine', 'ejs');
+  app.engine('ejs', ejs);
+  const projectRootPath = path.resolve();
+  app.set('views', path.join(projectRootPath, 'server', 'viewTemplates'));
   app.use(compression());
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());

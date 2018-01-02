@@ -20,7 +20,7 @@ hexIslandApp
 	      var camera_z = -300;
 	      camera.position.set( camera_x, 200, camera_z );
 
-	      
+
 	      controls = new THREE.OrbitControls( camera, renderer.domElement );
 	      controls.noPan = true;
 	      controls.maxPolarAngle = Math.PI/2.5;
@@ -114,7 +114,7 @@ hexIslandApp
 	  var renderWater = function(){
 
 	    var waterNormals = new THREE.ImageUtils.loadTexture( 'assets/images/waternormals.jpg' );
-	    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping; 
+	    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
 
 	    water = new THREE.Water( renderer, camera, scene, {
 	      waterNormals: waterNormals,
@@ -180,7 +180,7 @@ hexIslandApp
 	      }
 	    },
 	    set_someAction: function(action){
-	      var engine_factory = angular.element(document.body).injector().get('engineFactory');
+	      var engine_factory = hexIslandApp.element(document.body).injector().get('engineFactory');
 	      switch(action){
 	        case "road":
 	          if(!!buildMode){
@@ -217,7 +217,7 @@ hexIslandApp
 		          } else if (!!indices1 && engine_factory.isRobberOnTile(indices1)) {
 		          	someAction = function(coords2) {
 		          		var indices2 = game_board.getTile(coords2);
-		          		if (!!indices2) { 
+		          		if (!!indices2) {
 		          			var move_result = engine_factory.moveRobber(indices2, indices1);
 		          			//reset two-click action so user can choose to select another robber instead
 		          			if(!move_result) { someAction = parentFunc; }
@@ -257,7 +257,7 @@ hexIslandApp
 	      scene.add(vertex_building.building);
 	    },
 	    exitBuildMode: function(){
-	    	var engine_factory = angular.element(document.body).injector().get('engineFactory');
+	    	var engine_factory = hexIslandApp.element(document.body).injector().get('engineFactory');
 	    	unset_someAction(!engine_factory.robberLockdownStatus());
 	    },
 	    getBuildMode: function(){

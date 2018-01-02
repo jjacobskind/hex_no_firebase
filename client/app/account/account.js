@@ -1,5 +1,3 @@
-'use strict';
-
 hexIslandApp
   .config(function ($stateProvider) {
     $stateProvider

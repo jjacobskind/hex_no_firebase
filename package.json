@@ -18,6 +18,7 @@
     "composable-middleware": "^0.3.0",
     "compression": "~1.0.1",
     "connect-mongo": "^2.0.0",
+    "consolidate": "^0.15.0",
     "cookie-parser": "~1.0.1",
     "ejs": "~0.8.4",
     "errorhandler": "~1.0.0",
@@ -36,6 +37,9 @@
     "passport-twitter": "latest",
     "q": "^1.1.2",
     "react": "^16.0.0",
+    "react-dom": "^16.2.0",
+    "react-dom-server": "0.0.5",
+    "react-helmet": "^5.2.0",
     "redis": "^0.12.1",
     "serve-favicon": "~2.0.1",
     "socket.io": "^1.2.1"

@@ -35,10 +35,10 @@ hexIslandApp
 	            ngModelCtrl.$setViewValue(transformedInput);
 	            ngModelCtrl.$render();
 	            return transformedInput;
-	          } 
+	          }
 	          return text;
 	      }
 	      ngModelCtrl.$parsers.push(fromUser);
 	    }
-	  }; 
+	  };
 	});

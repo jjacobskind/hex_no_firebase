@@ -13,7 +13,7 @@ hexIslandApp
       scope = scope || {};
       modalClass = modalClass || 'modal-default';
 
-      angular.extend(modalScope, scope);
+      hexIslandApp.extend(modalScope, scope);
 
       return $modal.open({
         templateUrl: 'components/modal/modal.html',
@@ -34,7 +34,7 @@ hexIslandApp
          * @return {Function}     - the function to open the modal (ex. myModalFn)
          */
         delete: function(del) {
-          del = del || angular.noop;
+          del = del || hexIslandApp.noop;
 
           /**
            * Open a delete confirmation modal

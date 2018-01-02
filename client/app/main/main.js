@@ -1,7 +1,4 @@
-'use strict';
-
-hexIslandApp
-  .config(function ($stateProvider) {
+export default function ($stateProvider) {
     $stateProvider
       .state('main', {
         abstract:true,
@@ -27,7 +24,7 @@ hexIslandApp
         authenticate: true
       })
       .state('main.load', {
-      	url: '/load_game', 
+      	url: '/load_game',
       	templateUrl: 'app/main/menu_templates/main_load.html',
       	scope:false,
         authenticate: true
@@ -38,4 +35,4 @@ hexIslandApp
       	scope: false,
         authenticate: true
       });
-  });
+  };

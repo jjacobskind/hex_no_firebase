@@ -28,7 +28,7 @@ hexIslandApp
         dataLink.authWithOAuthPopup("facebook", function(error, authData) {
             if (authData) {
             // the access token will allow us to make Open Graph API calls
-            
+
           }
         }).then(function() {
           // Logged in, redirect to home

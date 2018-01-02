@@ -17,7 +17,7 @@ hexIslandApp
        * @return {Promise}
        */
       login: function(user, callback) {
-        var cb = callback || angular.noop;
+        var cb = callback || hexIslandApp.noop;
         var deferred = $q.defer();
 
         $http.post('/auth/local', {
@@ -57,7 +57,7 @@ hexIslandApp
        * @return {Promise}
        */
       createUser: function(user, callback) {
-        var cb = callback || angular.noop;
+        var cb = callback || hexIslandApp.noop;
 
         return User.save(user,
           function(data) {
@@ -80,7 +80,7 @@ hexIslandApp
        * @return {Promise}
        */
       changePassword: function(oldPassword, newPassword, callback) {
-        var cb = callback || angular.noop;
+        var cb = callback || hexIslandApp.noop;
 
         return User.changePassword({ id: currentUser._id }, {
           oldPassword: oldPassword,

@@ -1,29 +1,13 @@
-'use strict';
+import React from 'react'
+import {renderToStaticMarkup} from 'react-dom/server'
+// import MainMenu from './reactTemplates/MainMenu'
 
-hexIslandApp
-    .factory('authFactory', function(Auth){
-        var playerData, playerID, playerDisplayName;
-        return {
-            setPlayerID: function(id){
-                playerID = id;
-            },
-            getPlayerID: function(){
-                return playerID;
-            },
-            setPlayerName: function(name) {
-                playerDisplayName = name;
-            },
-            getPlayerName: function(){
-                return playerDisplayName;
-            }
-        };
-    })
-  .controller('MainCtrl', function ($scope, $state, $http, $window, Auth, authFactory, boardFactory, engineFactory, socket, $q, $rootScope) {
+export default function ($scope, $state, $http, $window, Auth, authFactory, boardFactory, engineFactory, socket, $q, $rootScope, $sce) {
     var self = this;
     self.player_name;
     var testcanvas = document.createElement('canvas');
     self.meets_reqs = !!(testcanvas.getContext("webgl") || testcanvas.getContext("experimental-webgl"));
-    self.player_name = authFactory.getPlayerName();
+    self.player_name = authFactory.getPlayerName() || 'J';
 
     self.previousGameIDs = [];
 
