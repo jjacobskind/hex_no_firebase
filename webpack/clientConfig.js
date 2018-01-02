@@ -2,7 +2,7 @@ import path from 'path';
 import loaders from './loaders';
 import {clientPlugins} from './queuePlugins';
 import merge from 'lodash/merge';
-import {publicDir, clientDir} from './directoryPaths';
+import {publicDir, clientDir, reactDir} from './directoryPaths';
 
 const STATIC_PROPERTIES = {
   devtool: 'sourcemap',
@@ -23,7 +23,10 @@ const STATIC_PROPERTIES = {
   },
   resolve: {
     extensions: ['.js', '.jsx'],
-    modules: [path.resolve('./node_modules')]
+    modules: [path.resolve('./node_modules')],
+    alias: {
+      reactDir,
+    }
   },
   target: 'web',
   module: { rules: loaders }

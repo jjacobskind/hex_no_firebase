@@ -2,7 +2,7 @@ import path from 'path';
 import merge from 'lodash/merge';
 import loaders from './loaders';
 import {serverPlugins} from './queuePlugins';
-import {rootDir, serverBuildDir, publicDir} from './directoryPaths';
+import {rootDir, serverBuildDir, publicDir, reactDir} from './directoryPaths';
 
 const STATIC_PROPERTIES = {
   devtool: 'sourcemap',
@@ -14,7 +14,10 @@ const STATIC_PROPERTIES = {
     publicPath: '/'
   },
   resolve: {
-    extensions: ['.js', '.jsx']
+    extensions: ['.js', '.jsx'],
+    alias: {
+      reactDir,
+    }
   },
   target: 'node',
   externals: /^[a-z][a-z\.\-0-9]*$/,
