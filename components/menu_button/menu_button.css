@@ -1,0 +1,19 @@
+.component {
+  color: red;
+  text-decoration: none;
+  text-shadow: none;
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.3);
+  border: 2px solid #fff;
+  padding: 15px 35px;
+  font-size: 20px;
+
+  &:hover,
+  &:focus {
+    color: #a18d6c;
+    background-color: #fff;
+    opacity: 0.6;
+    text-decoration: none;
+    cursor: pointer;
+  }
+}
