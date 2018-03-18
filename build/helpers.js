@@ -1,6 +1,6 @@
 const path = require('path')
 const rootDir = path.resolve()
-const buildDir = path.resolve('build')
+const buildDir = path.resolve('build/dist')
 
 
 exports.mapCSSFileName = function (cssFileName) {

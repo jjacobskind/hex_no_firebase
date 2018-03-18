@@ -1,4 +1,17 @@
 {
-  "plugins": ["add-module-exports", "transform-runtime", "module-resolver"],
-  "presets": ["es2015", "stage-0", "react"]
+  "plugins": [
+    ["module-resolver",
+      {
+        "root": ["./"],
+        "alias": {
+          "hex-island": "./"
+        },
+        "extensions": [".js", ".svg"]
+      }
+    ]
+  ],
+  "presets": [
+    "next/babel",
+    "stage-2"
+  ]
 }
