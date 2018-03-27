@@ -6,7 +6,7 @@ const glob = require('glob')
 const isDevelopmentLike = true, isProductionLike = false;
 
 const entries = {
-  // fonts: './styles/fonts.css',
+  fonts: path.resolve('styles', 'fonts.css'),
   application: glob.sync('./pages/**/*.js'),
 }
 

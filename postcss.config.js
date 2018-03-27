@@ -23,9 +23,10 @@ module.exports = () => ({
       },
     }),
     require('postcss-assets')({
-      loadPaths: [
-        'build/static/',
-      ],
+      // loadPaths: [
+        // 'build/static/',
+      //   '/',
+      // ],
     }),
     require('postcss-simple-vars')(),
     require('postcss-mixins')(),

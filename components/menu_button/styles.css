@@ -1,12 +1,12 @@
 .component {
   color: red;
   text-decoration: none;
-  text-shadow: none;
+  text-shadow: rgb(0, 0, 0) 0px 1px 3px;
   color: #fff;
   background-color: rgba(255, 255, 255, 0.3);
   border: 2px solid #fff;
   padding: 15px 35px;
-  font-size: 20px;
+  font-size: 18px;
 
   &:hover,
   &:focus {
@@ -14,6 +14,7 @@
     background-color: #fff;
     opacity: 0.6;
     text-decoration: none;
+    text-shadow: none;
     cursor: pointer;
   }
 }

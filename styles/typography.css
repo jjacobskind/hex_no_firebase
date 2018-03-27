@@ -1,0 +1,4 @@
+@define-mixin typePrimary {
+  font-family: "Muli, sans-serif";
+  font-style: normal;
+}
