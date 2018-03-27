@@ -8,3 +8,4 @@ client/bower_components
 /server/config/local.env.js
 serverBuild
 build/**/
+.next/
