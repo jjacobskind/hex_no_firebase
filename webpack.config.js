@@ -31,6 +31,15 @@ module.exports = {
             loader: 'babel-loader',
             options: {
               cacheDirectory: true,
+              plugins: [
+                ['module-resolver', {
+                  'root': ['./'],
+                  'alias': {
+                    'hex-island': path.resolve(),
+                  },
+                  'extensions': ['.js', '.svg'],
+                }],
+              ],
             },
           },
         ],

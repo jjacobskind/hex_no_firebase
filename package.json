@@ -35,7 +35,7 @@
     "morgan": "~1.0.0",
     "next": "^5.0.0",
     "passport": "~0.2.0",
-    "passport-facebook": "latest",
+    "passport-facebook": "^2.1.1",
     "passport-google-oauth": "latest",
     "passport-local": "~0.1.6",
     "passport-twitter": "latest",

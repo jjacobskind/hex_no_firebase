@@ -1,13 +1,20 @@
 import React from 'react'
 import MenuButton from 'hex-island/components/menu_button'
+import openLoginPopup from 'hex-island/helpers/openLoginPopup'
 import styles from 'hex-island/components/homepage/styles.css'
 
 class Homepage extends React.Component {
+
+  _signInUser = (user) => {
+    console.log("hey")
+  }
+
   render() {
     return (
       <div className={ styles.component }>
         <h1 className={ styles.gameTitle }>Hex Island</h1>
         <MenuButton
+          onClick={ () => { openLoginPopup(this._signInUser) } }
           text="Login With Facebook"
         />
         <div className={ styles.footer }>
