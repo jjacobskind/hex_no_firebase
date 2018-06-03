@@ -6,19 +6,16 @@ var crypto = require('crypto');
 var authTypes = ['github', 'twitter', 'facebook', 'google'];
 
 var UserSchema = new Schema({
-  name: String,
+  firstname: String,
+  lastname: String,
   email: { type: String, lowercase: true },
+  hashedPassword: String,
+  salt: String,
   role: {
     type: String,
     default: 'user'
   },
-  hashedPassword: String,
-  provider: String,
-  salt: String,
-  facebook_id: String,
-  twitter: {},
-  google: {},
-  github: {},
+  email_verified: { type: Boolean, default: false },
   games: [{ type: mongoose.Schema.ObjectId, ref: 'Game', required: true }]
 });
 
@@ -143,7 +140,7 @@ UserSchema.methods = {
   encryptPassword: function(password) {
     if (!password || !this.salt) return '';
     var salt = new Buffer(this.salt, 'base64');
-    return crypto.pbkdf2Sync(password, salt, 10000, 64).toString('base64');
+    return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha1').toString('base64');
   }
 };
 

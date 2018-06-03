@@ -23,5 +23,5 @@ export default (cb) => {
   }
 
   window.login = cb
-  window.open('/auth/facebook', '', optionsArr.join());
+  window.open('/auth/login', '', optionsArr.join());
 }

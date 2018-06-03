@@ -15,7 +15,7 @@ class Homepage extends React.Component {
         <h1 className={ styles.gameTitle }>Hex Island</h1>
         <MenuButton
           onClick={ () => { openLoginPopup(this._signInUser) } }
-          text="Login With Facebook"
+          text="Log In"
         />
         <div className={ styles.footer }>
           By Team Hex:&nbsp;
