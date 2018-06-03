@@ -3,12 +3,14 @@ const CustomStrategy = require('passport-custom').Strategy
 const User = require('../../server/api/user/user.model')
 
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  done(null, user._id)
 });
 
 passport.deserializeUser((id, done) => {
-  models.user.findById(id)
-    .then(function(user) { done(null, user); });
+  User.findById(id)
+    .then(user => {
+      done(null, user)
+    })
 });
 
 passport.use('signup', new CustomStrategy(
@@ -37,7 +39,11 @@ passport.use('login', new CustomStrategy(
       .exec()
       .then(user => {
         if(!user || !user.authenticate(password)) { return('Invalid email or password') }
-        return done(null, user)
+
+        req.login(user, (err) => {
+          if(err) { return done(err) }
+          return done(null, user)
+        })
       })
   })
 )

@@ -10,7 +10,10 @@ const methodOverride = require('method-override')
 const config = require('./server/config/environment')
 const mongoose = require('mongoose')
 mongoose.connect(config.mongo.uri, config.mongo.options)
-const passport = require('./controllers/auth/passport.js')
+const passport = require('./controllers/auth/passport')
+const session = require('express-session')
+const MongoStore = require('connect-mongo')(session)
+const cookieParser = require('cookie-parser')
 
 // Middlewares
 // const cacheHeaders = require('./middlewares/cache_headers')
@@ -23,9 +26,19 @@ const handle = app.getRequestHandler()
 app.prepare()
 .then(() => {
   const server = express()
+  server.use(cookieParser())
 
   // Middlewares
+  server.use(session({
+   secret: 'dsgnjdkbndlv',
+   saveUninitialized: false,
+   resave: true,
+   store: new MongoStore({ mongooseConnection: mongoose.connection }),
+   cookie: {}
+  }))
+
   server.use(passport.initialize())
+  server.use(passport.session())
   server.use(compression())
 
   server.use(express.static(path.join(path.resolve(), 'build')))
