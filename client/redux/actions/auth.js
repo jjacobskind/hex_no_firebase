@@ -1,5 +1,6 @@
 import {push} from 'react-router-redux'
-import ActionTypes from 'client/redux/actions/action_types'
+import ActionTypes from 'hex-island/client/redux/actions/action_types'
+import * as AuthApi from 'hex-island/client/api/auth'
 
 export const setUser = (user) => ({
   type: SET_USER,
@@ -7,7 +8,7 @@ export const setUser = (user) => ({
 });
 
 export const clearUser = () => {
-  return { type: CLEAR_USER };
+  return { type: CLEAR_USER }
 }
 
 export const authInputChanged = (attributeName, value) => ({
@@ -17,9 +18,21 @@ export const authInputChanged = (attributeName, value) => ({
 })
 
 export const loginFormSubmitted = () => (
-  (dispatch, getStore) => {
-    console.log("HEY")
-    console.log(getStore().auth)
+  async (dispatch, getState) => {
+    const authState = getState().get("auth")
+    const email = authState.get("email")
+    const password = authState.get("password")
+    // dispatch(loginStarted())
+
+    try {
+      const response = await AuthApi.login(email, password)
+
+      // dispatch(loginSucceeded())
+    } catch (error) {
+      // dispatch(loginFailed())
+    }
+
+    // dispatch(loginCompleted())
   }
 )
 
