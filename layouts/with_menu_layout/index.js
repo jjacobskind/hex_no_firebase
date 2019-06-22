@@ -10,6 +10,7 @@ const withMenuLayout = (PageComponent) => {
   return (props) => (
     <div className={ styles.component }>
       <Head>
+        <title>Hex Island</title>
         <link key='admin-stylesheet' rel='stylesheet' type='text/css' href={ 'static/application.bundle.css'/*_static('admin.bundle.css')*/ } />
       </Head>
       <PageComponent { ...props }/>

@@ -1,0 +1,80 @@
+{
+    "parser": "babel-eslint",
+    "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended",
+        "plugin:import/errors",
+        "plugin:import/warnings"
+    ],
+    "rules": {
+        "strict": ["error", "never"],
+        "arrow-parens": ["error", "always"],
+        "prefer-arrow-callback": ["error"],
+        "indent": ["error", 2, {
+            "SwitchCase": 1
+        }],
+        "quotes": ["error", "single", {
+            "avoidEscape": true
+        }],
+        "linebreak-style": ["error", "unix"],
+        "semi": ["error","never"],
+        "brace-style": ["error", "1tbs", {
+            "allowSingleLine": true
+        }],
+        "comma-dangle": ["error", {
+            "arrays": "always-multiline",
+            "objects": "always-multiline",
+            "imports": "always-multiline",
+            "exports": "always-multiline",
+            "functions": "always-multiline"
+        }],
+        "keyword-spacing": ["error", {
+            "before": true,
+            "after": true,
+        }],
+        "no-console": "warn",
+        "generator-star-spacing": "error",
+        "object-curly-spacing": ["error", "always"],
+        "object-shorthand": ["error", "always"],
+        "prefer-const": ["error"],
+        "sort-keys": ["warn", "asc", {
+            "caseSensitive": false
+        }],
+        "compat/compat": "warn",
+        "react/react-in-jsx-scope": "off",
+        "react/sort-comp": [2],
+        "react/jsx-space-before-closing": ["error", "always"],
+        "react/jsx-boolean-value": ["error", "never"],
+        "react/jsx-curly-spacing": ["error", "always"],
+        "react/jsx-no-bind": [2, { allowArrowFunctions: true }],
+        "import/no-unresolved": ["error", {
+            "ignore": ["^highline.+"]
+        }]
+    },
+    "env": {
+        "es6": true,
+        "browser": true,
+        "jest": true,
+        "node": true
+    },
+    "globals": {
+      "process": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 8,
+        "sourceType": "module",
+        "ecmaFeatures": {
+            "experimentalObjectRestSpread": true,
+            "jsx": true
+        }
+    },
+    "settings": {
+        "import/resolver": {
+            "babel-module": {}
+        }
+    },
+    "plugins": [
+        "compat",
+        "react"
+    ]
+}

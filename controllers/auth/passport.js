@@ -38,7 +38,7 @@ passport.use('login', new CustomStrategy(
     User.findOne({ email })
       .exec()
       .then(user => {
-        if(!user || !user.authenticate(password)) { return('Invalid email or password') }
+        if(!user || !user.authenticate(password)) { return done('Invalid email or password') }
 
         req.login(user, (err) => {
           if(err) { return done(err) }

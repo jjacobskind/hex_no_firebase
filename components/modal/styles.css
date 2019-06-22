@@ -1,0 +1,28 @@
+.component {
+  position: fixed;
+  width: 600px;
+  left: 300px;
+  top: 150px;
+  background-color: #fefefe;
+  border-color: black;
+  border-style: solid;
+  border-width: 2px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.visible {
+  opacity: 1;
+}
+
+.leftCol {
+  display: inline-block;
+  text-align: right;
+  width: 50%;
+}
+
+.rightCol {
+  display: inline-block;
+  text-align: left;
+  width: 50%;
+}
