@@ -7,7 +7,7 @@ const mapCSSFileName = require('./build/helpers').mapCSSFileName
 module.exports = () => ({
   plugins: [
     require('postcss-import')(),
-    require('postcss-cssnext')(),
+    require('postcss-preset-env')(),
     require('postcss-modules')({
       generateScopedName: (name, filename, css) => {
           const splitFilename = filename.split('/')
@@ -24,7 +24,7 @@ module.exports = () => ({
     }),
     require('postcss-assets')({
       // loadPaths: [
-        // 'build/static/',
+      //   'build/static/',
       //   '/',
       // ],
     }),

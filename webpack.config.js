@@ -1,5 +1,6 @@
 const { EnvironmentPlugin } = require('webpack')
-const ExtractTextPlugin = require('extract-text-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries')
 const path = require('path')
 const glob = require('glob')
 // const { isProductionLike, isDevelopmentLike } = require('./config/server')
@@ -15,10 +16,10 @@ if (isDevelopmentLike) {
 }
 
 module.exports = {
-  devtool: isDevelopmentLike ? 'cheap-module-inline-source-map' : 'hidden-source-map',
+  // devtool: isDevelopmentLike ? 'cheap-module-inline-source-map' : 'hidden-source-map',
   entry: entries,
   output: {
-    filename: '[name].bundle.css',
+    filename: '[name].bundle.js',
     path: path.resolve('build', 'static'),
   },
   module: {
@@ -50,21 +51,19 @@ module.exports = {
           path.resolve('components'),
           path.resolve('layouts'),
         ],
-        use: ExtractTextPlugin.extract({
-          fallback: 'style-loader',
-          use: [
-            {
-              loader: 'css-loader',
-              options: {
-                importLoaders: 1,
-                localIdentName: '[local]',
-                minimize: isProductionLike,
-                modules: true,
-              },
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1,
+              localIdentName: '[local]',
+              // minimize: isProductionLike,
+              modules: true,
             },
-            'postcss-loader',
-          ],
-        }),
+          },
+          'postcss-loader',
+        ],
       },
       {
         test: /\.css$/,
@@ -72,19 +71,17 @@ module.exports = {
           path.resolve('components'),
           path.resolve('layouts'),
         ], /* Vendor files */
-        use: ExtractTextPlugin.extract({
-          fallback: 'style-loader',
-          use: [
-            {
-              loader: 'css-loader',
-              options: {
-                importLoaders: 1,
-                minimize: isProductionLike,
-                modules: false,
-              },
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1,
+              // minimize: isProductionLike,
+              modules: false,
             },
-          ],
-        }),
+          },
+        ],
       },
       {
         test: /\.(png|jpg)$/,
@@ -93,8 +90,9 @@ module.exports = {
     ],
   },
   plugins: [
-    new ExtractTextPlugin('[name].bundle.css', {
-      ignoreOrder: true,
+    new FixStyleOnlyEntriesPlugin({ extensions:["css", "js"] }),
+    new MiniCssExtractPlugin({
+      filename: '[name].bundle.css',
     }),
     new EnvironmentPlugin(process.env),
   ],
