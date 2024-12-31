@@ -4,10 +4,11 @@ import BoardScene from '../board_scene/board_scene';
 import ChatBox from '../chat_box/chat_box';
 import BuildMenu from '../build_menu/build_menu';
 import RobberControl from '../robber_control/robber_control';
+import DiceRoller from '../dice_roller/dice_roller';
 import './game_page.css';
 
 export default function GamePage() {
-  const { players, selectedTile } = useGameState();
+  const { players, selectedTile, playerResources } = useGameState();
 
   // Log whenever players change
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>Now includes a basic Robber mechanic!</p>
+      <p>Now includes a dice roller! Rolling a 7 forces robber movement.</p>
 
       <div className="game-layout">
         <div className="board-section">
@@ -33,6 +34,7 @@ export default function GamePage() {
         </div>
 
         <div className="sidebar">
+          <DiceRoller />
           <ChatBox />
           <BuildMenu />
           <RobberControl />
@@ -43,7 +45,12 @@ export default function GamePage() {
         <h3>Players in the game:</h3>
         <ul>
           {players.map((p, idx) => (
-            <li key={idx}>{p}</li>
+            <li key={idx}>
+              {p} 
+              {playerResources[p] !== undefined && (
+                <span> — Resources: {playerResources[p]}</span>
+              )}
+            </li>
           ))}
         </ul>
       </div>

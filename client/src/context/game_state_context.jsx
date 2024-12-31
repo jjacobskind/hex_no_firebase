@@ -17,17 +17,22 @@ export function GameStateProvider({ children }) {
   const [roads, setRoads] = useState([]);
   const [settlements, setSettlements] = useState([]);
 
+  // Minimal resource tracking: { [username]: numberOfResources }
+  const [playerResources, setPlayerResources] = useState({});
+
   const [selectedTile, setSelectedTile] = useState(null);
 
   // Build modes
   const [isBuildingRoad, setIsBuildingRoad] = useState(false);
   const [isBuildingSettlement, setIsBuildingSettlement] = useState(false);
 
-  // Robber state
+  // Robber
   const [isMovingRobber, setIsMovingRobber] = useState(false);
   const [robberTileId, setRobberTileId] = useState(null);
-  // After placing robber, we find which players to steal from
   const [playersToStealFrom, setPlayersToStealFrom] = useState([]);
+
+  // Dice rolling
+  const [diceResult, setDiceResult] = useState(null);
 
   const socket = useSocket();
 
@@ -44,7 +49,8 @@ export function GameStateProvider({ children }) {
         vertices: newVertices,
         roads: [],
         settlements: [],
-        robberTileId: null
+        robberTileId: null,
+        playerResources: {}
       });
 
       setTiles(newTiles);
@@ -58,6 +64,7 @@ export function GameStateProvider({ children }) {
       setRoads(existingGameState.roads || []);
       setSettlements(existingGameState.settlements || []);
       setRobberTileId(existingGameState.robberTileId || null);
+      setPlayerResources(existingGameState.playerResources || {});
     }
   }, []);
 
@@ -90,7 +97,10 @@ export function GameStateProvider({ children }) {
     if (gs.robberTileId !== undefined && gs.robberTileId !== robberTileId) {
       setRobberTileId(gs.robberTileId);
     }
-  }, [players, tiles, edges, vertices, roads, settlements, robberTileId]);
+    if (gs.playerResources && gs.playerResources !== playerResources) {
+      setPlayerResources(gs.playerResources);
+    }
+  }, [players, tiles, edges, vertices, roads, settlements, robberTileId, playerResources]);
 
   /** Place a road on an edge */
   function buildRoad(edgeId, owner) {
@@ -127,9 +137,9 @@ export function GameStateProvider({ children }) {
   function moveRobber(tileId) {
     setRobberTileId(tileId);
     setGameState({ robberTileId: tileId });
-    // Now see which players have a settlement on that tile's corners
+
+    // find adjacent owners
     const tileVertices = vertices.filter((v) => v.tiles.includes(tileId));
-    // For each vertex, if there's a settlement, gather the owner
     const owners = new Set();
     tileVertices.forEach((v) => {
       const foundSet = settlements.find((s) => s.vertexId === v.vertexId);
@@ -140,12 +150,70 @@ export function GameStateProvider({ children }) {
     setPlayersToStealFrom(Array.from(owners));
   }
 
+  /** 
+   * For now, just log it. 
+   * In a real game, you'd transfer a random resource card from that player.
+   */
   function stealFromPlayer(victim) {
-    // For now, just log it
     console.log(`Steal from player: ${victim}`);
-    // In a real game, you'd transfer 1 random resource card from victim to the robber's owner
     setPlayersToStealFrom([]);
     setIsMovingRobber(false);
+  }
+
+  /**
+   * Roll dice: 2d6
+   */
+  function rollDice(rollerName) {
+    const die1 = Math.floor(Math.random() * 6) + 1;
+    const die2 = Math.floor(Math.random() * 6) + 1;
+    const total = die1 + die2;
+
+    setDiceResult(total);
+
+    console.log(`${rollerName} rolled a ${die1} + ${die2} = ${total}`);
+
+    if (total === 7) {
+      console.log('You rolled a 7! Move the robber!');
+      // force robber move
+      setIsMovingRobber(true);
+    } else {
+      // distribute resources
+      distributeResources(total);
+    }
+  }
+
+  /**
+   * Very simplified resource distribution:
+   * - For each tile with diceNumber == total
+   * - find settlements on that tile's corners
+   * - +1 resource to that settlement's owner
+   */
+  function distributeResources(total) {
+    const matchingTiles = tiles.filter((t) => t.diceNumber === total && t.id !== robberTileId);
+    // if robberTileId is on a tile with diceNumber == total, that tile is blocked
+    // so skip it
+
+    // For each tile, find vertices, check if there's a settlement
+    const newResources = { ...playerResources };
+
+    matchingTiles.forEach((tile) => {
+      const tileVerts = vertices.filter((v) => v.tiles.includes(tile.id));
+      tileVerts.forEach((vert) => {
+        const foundSet = settlements.find((s) => s.vertexId === vert.vertexId);
+        if (foundSet) {
+          // give +1 resource
+          const owner = foundSet.owner;
+          if (!newResources[owner]) {
+            newResources[owner] = 0;
+          }
+          newResources[owner] += 1;
+          console.log(`Player ${owner} gets +1 resource from tile #${tile.id}`);
+        }
+      });
+    });
+
+    setPlayerResources(newResources);
+    setGameState({ playerResources: newResources });
   }
 
   const contextValue = {
@@ -155,24 +223,27 @@ export function GameStateProvider({ children }) {
     vertices,
     roads,
     settlements,
+    robberTileId,
+    diceResult,
+    playerResources,
+
     selectedTile,
+    setSelectedTile: (tile) => setSelectedTile(tile),
 
     isBuildingRoad,
     setIsBuildingRoad,
     isBuildingSettlement,
     setIsBuildingSettlement,
 
-    // Robber
     isMovingRobber,
     setIsMovingRobber,
-    robberTileId,
     playersToStealFrom,
     stealFromPlayer,
 
-    setSelectedTile: (tile) => setSelectedTile(tile),
     buildRoad,
     buildSettlement,
-    moveRobber
+    moveRobber,
+    rollDice
   };
 
   return (
