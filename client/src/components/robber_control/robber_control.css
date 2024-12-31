@@ -1,0 +1,22 @@
+.robber-control {
+  background-color: #ffe4e1;
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 120px;
+  text-align: center;
+}
+
+.robber-control button.active {
+  background-color: #ffa;
+  border: 2px solid #555;
+}
+
+.robber-info {
+  margin-top: 10px;
+  background-color: #fff8dc;
+  padding: 5px;
+}
+
+.robber-steal {
+  margin-top: 10px;
+}

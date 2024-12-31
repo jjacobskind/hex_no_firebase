@@ -16,7 +16,7 @@ export default function BuildMenu() {
       alert('You must be logged in to build roads!');
       return;
     }
-    setIsBuildingSettlement(false); // turn off settlement mode if on
+    setIsBuildingSettlement(false);
     setIsBuildingRoad(!isBuildingRoad);
   };
 
@@ -25,7 +25,7 @@ export default function BuildMenu() {
       alert('You must be logged in to build settlements!');
       return;
     }
-    setIsBuildingRoad(false); // turn off road mode if on
+    setIsBuildingRoad(false);
     setIsBuildingSettlement(!isBuildingSettlement);
   };
 
@@ -45,6 +45,10 @@ export default function BuildMenu() {
       >
         {isBuildingSettlement ? 'Cancel Settlement' : 'Build Settlement'}
       </button>
+
+      <p style={{ marginTop: '10px', fontSize: '0.9em', color: '#555' }}>
+        Use the Robber Control to move the robber & steal.
+      </p>
     </div>
   );
 }

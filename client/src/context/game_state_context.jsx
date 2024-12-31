@@ -1,7 +1,11 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { useSocket } from '../hooks/use_socket';
 import { getGameState, setGameState } from '../services/game_service';
-import { generateHexBoard, generateEdges, generateVertices } from '../utils/board_utils';
+import {
+  generateHexBoard,
+  generateEdges,
+  generateVertices
+} from '../utils/board_utils';
 
 export const GameStateContext = createContext(null);
 
@@ -9,22 +13,26 @@ export function GameStateProvider({ children }) {
   const [players, setPlayers] = useState([]);
   const [tiles, setTiles] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [vertices, setVertices] = useState([]); // For settlements
+  const [vertices, setVertices] = useState([]);
   const [roads, setRoads] = useState([]);
-  const [settlements, setSettlements] = useState([]); // Each => { vertexId, owner }
+  const [settlements, setSettlements] = useState([]);
 
   const [selectedTile, setSelectedTile] = useState(null);
 
-  // Build mode flags
+  // Build modes
   const [isBuildingRoad, setIsBuildingRoad] = useState(false);
   const [isBuildingSettlement, setIsBuildingSettlement] = useState(false);
 
+  // Robber state
+  const [isMovingRobber, setIsMovingRobber] = useState(false);
+  const [robberTileId, setRobberTileId] = useState(null);
+  // After placing robber, we find which players to steal from
+  const [playersToStealFrom, setPlayersToStealFrom] = useState([]);
+
   const socket = useSocket();
 
-  // On mount: generate board if we haven't
   useEffect(() => {
     const existingGameState = getGameState();
-
     if (!existingGameState.tiles) {
       const newTiles = generateHexBoard();
       const newEdges = generateEdges(newTiles);
@@ -35,18 +43,21 @@ export function GameStateProvider({ children }) {
         edges: newEdges,
         vertices: newVertices,
         roads: [],
-        settlements: []
+        settlements: [],
+        robberTileId: null
       });
 
       setTiles(newTiles);
       setEdges(newEdges);
       setVertices(newVertices);
+      setRobberTileId(null);
     } else {
       setTiles(existingGameState.tiles);
       setEdges(existingGameState.edges || []);
       setVertices(existingGameState.vertices || []);
       setRoads(existingGameState.roads || []);
       setSettlements(existingGameState.settlements || []);
+      setRobberTileId(existingGameState.robberTileId || null);
     }
   }, []);
 
@@ -76,7 +87,10 @@ export function GameStateProvider({ children }) {
     if (gs.vertices && gs.vertices !== vertices) setVertices(gs.vertices);
     if (gs.roads && gs.roads !== roads) setRoads(gs.roads);
     if (gs.settlements && gs.settlements !== settlements) setSettlements(gs.settlements);
-  }, [players, tiles, edges, vertices, roads, settlements]);
+    if (gs.robberTileId !== undefined && gs.robberTileId !== robberTileId) {
+      setRobberTileId(gs.robberTileId);
+    }
+  }, [players, tiles, edges, vertices, roads, settlements, robberTileId]);
 
   /** Place a road on an edge */
   function buildRoad(edgeId, owner) {
@@ -106,6 +120,34 @@ export function GameStateProvider({ children }) {
     console.log(`Settlement built by ${owner} on vertex ${vertexId}`);
   }
 
+  /**
+   * Move the robber to a tile
+   * Then find which players can be stolen from (who have settlements on this tile).
+   */
+  function moveRobber(tileId) {
+    setRobberTileId(tileId);
+    setGameState({ robberTileId: tileId });
+    // Now see which players have a settlement on that tile's corners
+    const tileVertices = vertices.filter((v) => v.tiles.includes(tileId));
+    // For each vertex, if there's a settlement, gather the owner
+    const owners = new Set();
+    tileVertices.forEach((v) => {
+      const foundSet = settlements.find((s) => s.vertexId === v.vertexId);
+      if (foundSet) {
+        owners.add(foundSet.owner);
+      }
+    });
+    setPlayersToStealFrom(Array.from(owners));
+  }
+
+  function stealFromPlayer(victim) {
+    // For now, just log it
+    console.log(`Steal from player: ${victim}`);
+    // In a real game, you'd transfer 1 random resource card from victim to the robber's owner
+    setPlayersToStealFrom([]);
+    setIsMovingRobber(false);
+  }
+
   const contextValue = {
     players,
     tiles,
@@ -120,9 +162,17 @@ export function GameStateProvider({ children }) {
     isBuildingSettlement,
     setIsBuildingSettlement,
 
+    // Robber
+    isMovingRobber,
+    setIsMovingRobber,
+    robberTileId,
+    playersToStealFrom,
+    stealFromPlayer,
+
     setSelectedTile: (tile) => setSelectedTile(tile),
     buildRoad,
-    buildSettlement
+    buildSettlement,
+    moveRobber
   };
 
   return (

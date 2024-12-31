@@ -1,195 +1,121 @@
 #!/usr/bin/env bash
 
 #############################################
-# PHASE 7 UPDATE SCRIPT
-# Adds basic settlement-building at vertices
+# PHASE 8 UPDATE SCRIPT
+# Adds basic robber logic (move robber, steal)
 #############################################
 
-# 1) Update board_utils.js with generateVertices()
-cat << 'EOF' > src/utils/board_utils.js
-/**
- * board_utils.js
- * Helper functions for generating or manipulating the hex board layout.
- * Now includes vertex generation for settlements (Phase 7).
- */
-
-const DEFAULT_RESOURCES = ['brick', 'wood', 'sheep', 'wheat', 'ore', 'desert'];
-const diceNumbers = [2,3,4,5,6,8,9,10,11,12];
-
-export function generateHexBoard() {
-  const layout = [
-    { rowLength: 3, yOffset: -2 },
-    { rowLength: 4, yOffset: -1 },
-    { rowLength: 5, yOffset: 0 },
-    { rowLength: 4, yOffset: 1 },
-    { rowLength: 3, yOffset: 2 },
-  ];
-
-  let tiles = [];
-  let tileId = 1;
-
-  for (let row = 0; row < layout.length; row++) {
-    const { rowLength, yOffset } = layout[row];
-
-    for (let col = 0; col < rowLength; col++) {
-      const resource = randomResource();
-      let diceNumber = null;
-      if (resource !== 'desert') {
-        diceNumber = randomDiceNumber();
-      }
-
-      const xPos = (col - (rowLength - 1)/2) * 1.8;
-      const yPos = yOffset * 1.55;
-
-      tiles.push({
-        id: tileId++,
-        resource,
-        diceNumber,
-        position: [xPos, yPos, 0],
-      });
-    }
-  }
-
-  return tiles;
-}
+# 1) Create/Update robber_control component
+mkdir -p src/components/robber_control
+cat << 'EOF' > src/components/robber_control/robber_control.jsx
+import React, { useState } from 'react';
+import { useGameState } from '../../hooks/use_game_state';
+import './robber_control.css';
 
 /**
- * Generate edges for roads (unchanged)
+ * RobberControl:
+ * - A button to toggle "Move Robber" mode
+ * - If robber is placed, we show which tile it is on.
+ * - If just placed, pick a neighbor player to steal from (placeholder).
  */
-export function generateEdges(tiles) {
-  const edges = [];
-  const edgeMap = new Map();
+export default function RobberControl() {
+  const {
+    isMovingRobber,
+    setIsMovingRobber,
+    robberTileId,
+    playersToStealFrom,
+    stealFromPlayer
+  } = useGameState();
 
-  tiles.forEach((tile) => {
-    const tileCenter = tile.position;
-    const tileEdges = getTileEdgeEndpoints(tileCenter);
+  const [chosenPlayer, setChosenPlayer] = useState('');
 
-    tileEdges.forEach((edge) => {
-      const [p1, p2] = edge;
-      const key = makeEdgeKey(p1, p2);
+  const toggleMoveRobber = () => {
+    setIsMovingRobber(!isMovingRobber);
+  };
 
-      if (!edgeMap.has(key)) {
-        edgeMap.set(key, {
-          edgeId: key,
-          tiles: [tile.id],
-          midpoint: midpoint3D(p1, p2),
-          endpoints: [p1, p2],
-        });
-      } else {
-        const existing = edgeMap.get(key);
-        if (!existing.tiles.includes(tile.id)) {
-          existing.tiles.push(tile.id);
-        }
-      }
-    });
-  });
+  const handleSteal = () => {
+    if (!chosenPlayer) return;
+    stealFromPlayer(chosenPlayer);
+    setChosenPlayer('');
+  };
 
-  edgeMap.forEach((edgeObj) => edges.push(edgeObj));
-  return edges;
-}
+  return (
+    <div className="robber-control">
+      <h3>Robber Control</h3>
+      <button
+        className={isMovingRobber ? 'active' : ''}
+        onClick={toggleMoveRobber}
+      >
+        {isMovingRobber ? 'Cancel Robber Move' : 'Move Robber'}
+      </button>
 
-/**
- * Generate vertices for settlements.
- * Each tile has 6 corners. Merge corners that are shared among multiple tiles.
- */
-export function generateVertices(tiles) {
-  const vertexMap = new Map();
+      {robberTileId && (
+        <div className="robber-info">
+          <p>Robber is on tile: <strong>{robberTileId}</strong></p>
+        </div>
+      )}
 
-  tiles.forEach((tile) => {
-    const tileCenter = tile.position;
-    const corners = getHexCorners(tileCenter);  // 6 corners
-
-    corners.forEach((corner) => {
-      const key = pointKey(corner);
-      if (!vertexMap.has(key)) {
-        vertexMap.set(key, {
-          vertexId: key,
-          position: corner,
-          tiles: [tile.id],
-        });
-      } else {
-        const existing = vertexMap.get(key);
-        if (!existing.tiles.includes(tile.id)) {
-          existing.tiles.push(tile.id);
-        }
-      }
-    });
-  });
-
-  const vertices = [];
-  vertexMap.forEach((v) => vertices.push(v));
-  return vertices;
-}
-
-/* -------------------- Internal Helpers -------------------- */
-
-function randomResource() {
-  return DEFAULT_RESOURCES[Math.floor(Math.random() * DEFAULT_RESOURCES.length)];
-}
-
-function randomDiceNumber() {
-  return diceNumbers[Math.floor(Math.random() * diceNumbers.length)];
-}
-
-function getTileEdgeEndpoints([cx, cy, cz]) {
-  const radius = 1;
-  const corners = [];
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i + Math.PI / 6;
-    const x = cx + radius * Math.cos(angle);
-    const y = cy + radius * Math.sin(angle);
-    corners.push([x, y, cz]);
-  }
-
-  const edges = [];
-  for (let i = 0; i < 6; i++) {
-    const c1 = corners[i];
-    const c2 = corners[(i + 1) % 6];
-    edges.push([c1, c2]);
-  }
-  return edges;
-}
-
-function makeEdgeKey(p1, p2) {
-  const s1 = p1.map((v) => v.toFixed(2)).join(',');
-  const s2 = p2.map((v) => v.toFixed(2)).join(',');
-  const sorted = [s1, s2].sort().join('|');
-  return sorted;
-}
-
-function midpoint3D([x1, y1, z1], [x2, y2, z2]) {
-  return [(x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2];
-}
-
-/**
- * Return the 6 corners of a tile for vertices.
- */
-function getHexCorners([cx, cy, cz]) {
-  const radius = 1;
-  const corners = [];
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i + Math.PI / 6;
-    const x = cx + radius * Math.cos(angle);
-    const y = cy + radius * Math.sin(angle);
-    corners.push([x, y, cz]);
-  }
-  return corners;
-}
-
-/**
- * Round the coordinates to make a stable key for vertex merging.
- */
-function pointKey(point) {
-  return point.map((v) => v.toFixed(2)).join(',');
+      {playersToStealFrom.length > 0 && (
+        <div className="robber-steal">
+          <p>Pick a player to steal from:</p>
+          <select
+            value={chosenPlayer}
+            onChange={(e) => setChosenPlayer(e.target.value)}
+          >
+            <option value="">-- choose --</option>
+            {playersToStealFrom.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <button onClick={handleSteal} disabled={!chosenPlayer}>
+            Steal
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 EOF
 
-# 2) Update game_state_context.jsx with vertices & settlements
+cat << 'EOF' > src/components/robber_control/robber_control.css
+.robber-control {
+  background-color: #ffe4e1;
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 120px;
+  text-align: center;
+}
+
+.robber-control button.active {
+  background-color: #ffa;
+  border: 2px solid #555;
+}
+
+.robber-info {
+  margin-top: 10px;
+  background-color: #fff8dc;
+  padding: 5px;
+}
+
+.robber-steal {
+  margin-top: 10px;
+}
+EOF
+
+cat << 'EOF' > src/components/robber_control/index.js
+export { default } from './robber_control.jsx';
+EOF
+
+# 2) Update the GameStateContext to store robberTileId, isMovingRobber, etc.
 cat << 'EOF' > src/context/game_state_context.jsx
 import React, { createContext, useEffect, useState } from 'react';
 import { useSocket } from '../hooks/use_socket';
 import { getGameState, setGameState } from '../services/game_service';
-import { generateHexBoard, generateEdges, generateVertices } from '../utils/board_utils';
+import {
+  generateHexBoard,
+  generateEdges,
+  generateVertices
+} from '../utils/board_utils';
 
 export const GameStateContext = createContext(null);
 
@@ -197,22 +123,26 @@ export function GameStateProvider({ children }) {
   const [players, setPlayers] = useState([]);
   const [tiles, setTiles] = useState([]);
   const [edges, setEdges] = useState([]);
-  const [vertices, setVertices] = useState([]); // For settlements
+  const [vertices, setVertices] = useState([]);
   const [roads, setRoads] = useState([]);
-  const [settlements, setSettlements] = useState([]); // Each => { vertexId, owner }
+  const [settlements, setSettlements] = useState([]);
 
   const [selectedTile, setSelectedTile] = useState(null);
 
-  // Build mode flags
+  // Build modes
   const [isBuildingRoad, setIsBuildingRoad] = useState(false);
   const [isBuildingSettlement, setIsBuildingSettlement] = useState(false);
 
+  // Robber state
+  const [isMovingRobber, setIsMovingRobber] = useState(false);
+  const [robberTileId, setRobberTileId] = useState(null);
+  // After placing robber, we find which players to steal from
+  const [playersToStealFrom, setPlayersToStealFrom] = useState([]);
+
   const socket = useSocket();
 
-  // On mount: generate board if we haven't
   useEffect(() => {
     const existingGameState = getGameState();
-
     if (!existingGameState.tiles) {
       const newTiles = generateHexBoard();
       const newEdges = generateEdges(newTiles);
@@ -223,18 +153,21 @@ export function GameStateProvider({ children }) {
         edges: newEdges,
         vertices: newVertices,
         roads: [],
-        settlements: []
+        settlements: [],
+        robberTileId: null
       });
 
       setTiles(newTiles);
       setEdges(newEdges);
       setVertices(newVertices);
+      setRobberTileId(null);
     } else {
       setTiles(existingGameState.tiles);
       setEdges(existingGameState.edges || []);
       setVertices(existingGameState.vertices || []);
       setRoads(existingGameState.roads || []);
       setSettlements(existingGameState.settlements || []);
+      setRobberTileId(existingGameState.robberTileId || null);
     }
   }, []);
 
@@ -264,7 +197,10 @@ export function GameStateProvider({ children }) {
     if (gs.vertices && gs.vertices !== vertices) setVertices(gs.vertices);
     if (gs.roads && gs.roads !== roads) setRoads(gs.roads);
     if (gs.settlements && gs.settlements !== settlements) setSettlements(gs.settlements);
-  }, [players, tiles, edges, vertices, roads, settlements]);
+    if (gs.robberTileId !== undefined && gs.robberTileId !== robberTileId) {
+      setRobberTileId(gs.robberTileId);
+    }
+  }, [players, tiles, edges, vertices, roads, settlements, robberTileId]);
 
   /** Place a road on an edge */
   function buildRoad(edgeId, owner) {
@@ -294,6 +230,34 @@ export function GameStateProvider({ children }) {
     console.log(`Settlement built by ${owner} on vertex ${vertexId}`);
   }
 
+  /**
+   * Move the robber to a tile
+   * Then find which players can be stolen from (who have settlements on this tile).
+   */
+  function moveRobber(tileId) {
+    setRobberTileId(tileId);
+    setGameState({ robberTileId: tileId });
+    // Now see which players have a settlement on that tile's corners
+    const tileVertices = vertices.filter((v) => v.tiles.includes(tileId));
+    // For each vertex, if there's a settlement, gather the owner
+    const owners = new Set();
+    tileVertices.forEach((v) => {
+      const foundSet = settlements.find((s) => s.vertexId === v.vertexId);
+      if (foundSet) {
+        owners.add(foundSet.owner);
+      }
+    });
+    setPlayersToStealFrom(Array.from(owners));
+  }
+
+  function stealFromPlayer(victim) {
+    // For now, just log it
+    console.log(`Steal from player: ${victim}`);
+    // In a real game, you'd transfer 1 random resource card from victim to the robber's owner
+    setPlayersToStealFrom([]);
+    setIsMovingRobber(false);
+  }
+
   const contextValue = {
     players,
     tiles,
@@ -308,9 +272,17 @@ export function GameStateProvider({ children }) {
     isBuildingSettlement,
     setIsBuildingSettlement,
 
+    // Robber
+    isMovingRobber,
+    setIsMovingRobber,
+    robberTileId,
+    playersToStealFrom,
+    stealFromPlayer,
+
     setSelectedTile: (tile) => setSelectedTile(tile),
     buildRoad,
-    buildSettlement
+    buildSettlement,
+    moveRobber
   };
 
   return (
@@ -321,7 +293,7 @@ export function GameStateProvider({ children }) {
 }
 EOF
 
-# 3) Update build_menu.jsx to add a "Build Settlement" button
+# 3) Update build_menu.jsx to add a note about robber control
 cat << 'EOF' > src/components/build_menu/build_menu.jsx
 import React from 'react';
 import { useGameState } from '../../hooks/use_game_state';
@@ -341,7 +313,7 @@ export default function BuildMenu() {
       alert('You must be logged in to build roads!');
       return;
     }
-    setIsBuildingSettlement(false); // turn off settlement mode if on
+    setIsBuildingSettlement(false);
     setIsBuildingRoad(!isBuildingRoad);
   };
 
@@ -350,7 +322,7 @@ export default function BuildMenu() {
       alert('You must be logged in to build settlements!');
       return;
     }
-    setIsBuildingRoad(false); // turn off road mode if on
+    setIsBuildingRoad(false);
     setIsBuildingSettlement(!isBuildingSettlement);
   };
 
@@ -370,12 +342,16 @@ export default function BuildMenu() {
       >
         {isBuildingSettlement ? 'Cancel Settlement' : 'Build Settlement'}
       </button>
+
+      <p style={{ marginTop: '10px', fontSize: '0.9em', color: '#555' }}>
+        Use the Robber Control to move the robber & steal.
+      </p>
     </div>
   );
 }
 EOF
 
-# 4) Update board_scene.jsx to draw & interact with vertices + show settlements
+# 4) Update board_scene.jsx to place the robber on tile click if isMovingRobber is true
 cat << 'EOF' > src/components/board_scene/board_scene.jsx
 import React, { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -384,7 +360,10 @@ import { useGameState } from '../../hooks/use_game_state';
 import './board_scene.css';
 
 export default function BoardScene() {
-  const { tiles, edges, vertices, roads, settlements } = useGameState();
+  const {
+    tiles, edges, vertices, roads, settlements,
+    robberTileId
+  } = useGameState();
 
   return (
     <div className="board-scene-container">
@@ -396,7 +375,7 @@ export default function BoardScene() {
 
         {/* Tiles */}
         {tiles.map((tile) => (
-          <HexTile key={tile.id} tile={tile} />
+          <HexTile key={tile.id} tile={tile} robberTileId={robberTileId} />
         ))}
 
         {/* Edges (for roads) */}
@@ -420,34 +399,70 @@ export default function BoardScene() {
   );
 }
 
-/** Hex Tile */
-function HexTile({ tile }) {
+/** HexTile now also checks if isMovingRobber is active and places the robber on click */
+function HexTile({ tile, robberTileId }) {
   const meshRef = useRef();
-  const { setSelectedTile } = useGameState();
+  const {
+    setSelectedTile,
+    isMovingRobber,
+    moveRobber
+  } = useGameState();
 
   const [hovered, setHovered] = useState(false);
 
   useFrame(() => {});
 
   const handleClick = () => {
+    // If robber mode is active, place robber here
+    if (isMovingRobber) {
+      moveRobber(tile.id);
+      return;
+    }
+    // Otherwise just select tile
     setSelectedTile(tile);
   };
 
   return (
-    <mesh
-      ref={meshRef}
-      position={tile.position}
-      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
-      onClick={(e) => { e.stopPropagation(); handleClick(); }}
-    >
-      <cylinderGeometry args={[1, 1, 0.1, 6]} />
-      <meshStandardMaterial color={getTileColor(tile, hovered)} />
+    <group>
+      <mesh
+        ref={meshRef}
+        position={tile.position}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        onClick={(e) => { e.stopPropagation(); handleClick(); }}
+      >
+        <cylinderGeometry args={[1, 1, 0.1, 6]} />
+        <meshStandardMaterial color={getTileColor(tile, hovered)} />
+      </mesh>
+
+      {/* If robber is on this tile, show a robber marker */}
+      {robberTileId === tile.id && (
+        <RobberMarker position={tile.position} />
+      )}
+    </group>
+  );
+}
+
+/** RobberMarker: a small black cylinder or other shape on top of the tile */
+function RobberMarker({ position }) {
+  const markerRef = useRef();
+
+  useFrame(() => {
+    if (markerRef.current) {
+      // optional spin
+      markerRef.current.rotation.y += 0.01;
+    }
+  });
+
+  return (
+    <mesh position={[position[0], position[1], 0.2]} ref={markerRef}>
+      <cylinderGeometry args={[0.3, 0.3, 0.4, 8]} />
+      <meshStandardMaterial color="black" />
     </mesh>
   );
 }
 
-/** EdgeLine for roads */
+/** Edges for roads */
 function EdgeLine({ edgeObj, roads }) {
   const { buildRoad, isBuildingRoad } = useGameState();
   const { edgeId, endpoints } = edgeObj;
@@ -462,7 +477,7 @@ function EdgeLine({ edgeObj, roads }) {
       console.log('Edge already has a road!');
       return;
     }
-    buildRoad(edgeId, 'SomePlayer'); // Expand to real user later
+    buildRoad(edgeId, 'SomePlayer');
   };
 
   const color = road ? getPlayerColor(road.owner) : (hovered ? 'yellow' : 'white');
@@ -478,7 +493,7 @@ function EdgeLine({ edgeObj, roads }) {
   );
 }
 
-/** VertexMarker for building or displaying a settlement */
+/** VertexMarker for settlements */
 function VertexMarker({ vertex, settlement }) {
   const { buildSettlement, isBuildingSettlement } = useGameState();
   const [hovered, setHovered] = useState(false);
@@ -494,27 +509,17 @@ function VertexMarker({ vertex, settlement }) {
     buildSettlement(vertex.vertexId, 'SomePlayer');
   };
 
-  useFrame(() => {
-    if (markerRef.current) {
-      // optional spin or animation
-    }
-  });
+  useFrame(() => {});
 
-  // If there's a settlement here, show it in the settlement's color
   if (settlement) {
     return (
-      <mesh
-        ref={markerRef}
-        position={vertex.position}
-      >
-        {/* For simplicity, draw a small box or sphere */}
+      <mesh ref={markerRef} position={vertex.position}>
         <boxGeometry args={[0.3, 0.3, 0.3]} />
         <meshStandardMaterial color={getPlayerColor(settlement.owner)} />
       </mesh>
     );
   }
 
-  // Otherwise, just draw a small invisible "click zone" or a small sphere
   return (
     <mesh
       ref={markerRef}
@@ -538,7 +543,6 @@ function EdgeCylinder({ endpoints, color, onPointerOver, onPointerOut, onClick }
   const [p1, p2] = endpoints;
   const cylinderRef = useRef();
 
-  // Compute midpoint
   const mx = (p1[0] + p2[0]) / 2;
   const my = (p1[1] + p2[1]) / 2;
   const mz = (p1[2] + p2[2]) / 2;
@@ -569,7 +573,7 @@ function EdgeCylinder({ endpoints, color, onPointerOver, onPointerOut, onClick }
   );
 }
 
-/** Colors for tiles, roads, and settlements */
+/** Helpers for tile colors, etc. */
 function getTileColor(tile, hovered) {
   const base = getResourceColor(tile.resource);
   if (hovered) {
@@ -607,9 +611,66 @@ function getPlayerColor(owner) {
 }
 EOF
 
-echo "Phase 7 files created/updated successfully!"
+# 5) Update game_page.jsx to include RobberControl in the sidebar
+cat << 'EOF' > src/components/game_page/game_page.jsx
+import React, { useEffect } from 'react';
+import { useGameState } from '../../hooks/use_game_state';
+import BoardScene from '../board_scene/board_scene';
+import ChatBox from '../chat_box/chat_box';
+import BuildMenu from '../build_menu/build_menu';
+import RobberControl from '../robber_control/robber_control';
+import './game_page.css';
+
+export default function GamePage() {
+  const { players, selectedTile } = useGameState();
+
+  // Log whenever players change
+  useEffect(() => {
+    console.log('[GamePage] players updated:', players);
+  }, [players]);
+
+  return (
+    <div className="game-page">
+      <h2>Hex Island</h2>
+      <p>Now includes a basic Robber mechanic!</p>
+
+      <div className="game-layout">
+        <div className="board-section">
+          <BoardScene />
+          {selectedTile && (
+            <div className="selected-tile-info">
+              <h3>Selected Tile</h3>
+              <p><strong>Resource:</strong> {selectedTile.resource}</p>
+              <p><strong>Dice #:</strong> {selectedTile.diceNumber || 'None'}</p>
+              <p><strong>Tile ID:</strong> {selectedTile.id}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="sidebar">
+          <ChatBox />
+          <BuildMenu />
+          <RobberControl />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <h3>Players in the game:</h3>
+        <ul>
+          {players.map((p, idx) => (
+            <li key={idx}>{p}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+EOF
+
+# 6) Done
+echo "Phase 8 files created/updated successfully!"
 echo "Next steps:"
-echo "1) Run 'npm start' and navigate to /game."
-echo "2) Click 'Build Settlement' in the Build Menu, then click a vertex (corner). A small box appears as your settlement!"
-echo "3) You can still 'Build Road' on edges. We'll refine resource checks, adjacency rules, etc., in future expansions."
-echo "4) Enjoy basic settlement-building, completing another big piece of the original Angular app's functionality!"
+echo "1) Run 'npm start' -> /game -> click 'Move Robber', then click any tile."
+echo "2) Robber will appear there (a small black cylinder)."
+echo "3) If the tile has adjacent settlements, pick a player to 'steal' from."
+echo "4) This is a simplified robber feature. Real logic: handle 7 rolls, dev cards, actual resource stealing, etc."

@@ -5,7 +5,10 @@ import { useGameState } from '../../hooks/use_game_state';
 import './board_scene.css';
 
 export default function BoardScene() {
-  const { tiles, edges, vertices, roads, settlements } = useGameState();
+  const {
+    tiles, edges, vertices, roads, settlements,
+    robberTileId
+  } = useGameState();
 
   return (
     <div className="board-scene-container">
@@ -17,7 +20,7 @@ export default function BoardScene() {
 
         {/* Tiles */}
         {tiles.map((tile) => (
-          <HexTile key={tile.id} tile={tile} />
+          <HexTile key={tile.id} tile={tile} robberTileId={robberTileId} />
         ))}
 
         {/* Edges (for roads) */}
@@ -41,34 +44,70 @@ export default function BoardScene() {
   );
 }
 
-/** Hex Tile */
-function HexTile({ tile }) {
+/** HexTile now also checks if isMovingRobber is active and places the robber on click */
+function HexTile({ tile, robberTileId }) {
   const meshRef = useRef();
-  const { setSelectedTile } = useGameState();
+  const {
+    setSelectedTile,
+    isMovingRobber,
+    moveRobber
+  } = useGameState();
 
   const [hovered, setHovered] = useState(false);
 
   useFrame(() => {});
 
   const handleClick = () => {
+    // If robber mode is active, place robber here
+    if (isMovingRobber) {
+      moveRobber(tile.id);
+      return;
+    }
+    // Otherwise just select tile
     setSelectedTile(tile);
   };
 
   return (
-    <mesh
-      ref={meshRef}
-      position={tile.position}
-      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
-      onClick={(e) => { e.stopPropagation(); handleClick(); }}
-    >
-      <cylinderGeometry args={[1, 1, 0.1, 6]} />
-      <meshStandardMaterial color={getTileColor(tile, hovered)} />
+    <group>
+      <mesh
+        ref={meshRef}
+        position={tile.position}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+        onClick={(e) => { e.stopPropagation(); handleClick(); }}
+      >
+        <cylinderGeometry args={[1, 1, 0.1, 6]} />
+        <meshStandardMaterial color={getTileColor(tile, hovered)} />
+      </mesh>
+
+      {/* If robber is on this tile, show a robber marker */}
+      {robberTileId === tile.id && (
+        <RobberMarker position={tile.position} />
+      )}
+    </group>
+  );
+}
+
+/** RobberMarker: a small black cylinder or other shape on top of the tile */
+function RobberMarker({ position }) {
+  const markerRef = useRef();
+
+  useFrame(() => {
+    if (markerRef.current) {
+      // optional spin
+      markerRef.current.rotation.y += 0.01;
+    }
+  });
+
+  return (
+    <mesh position={[position[0], position[1], 0.2]} ref={markerRef}>
+      <cylinderGeometry args={[0.3, 0.3, 0.4, 8]} />
+      <meshStandardMaterial color="black" />
     </mesh>
   );
 }
 
-/** EdgeLine for roads */
+/** Edges for roads */
 function EdgeLine({ edgeObj, roads }) {
   const { buildRoad, isBuildingRoad } = useGameState();
   const { edgeId, endpoints } = edgeObj;
@@ -83,7 +122,7 @@ function EdgeLine({ edgeObj, roads }) {
       console.log('Edge already has a road!');
       return;
     }
-    buildRoad(edgeId, 'SomePlayer'); // Expand to real user later
+    buildRoad(edgeId, 'SomePlayer');
   };
 
   const color = road ? getPlayerColor(road.owner) : (hovered ? 'yellow' : 'white');
@@ -99,7 +138,7 @@ function EdgeLine({ edgeObj, roads }) {
   );
 }
 
-/** VertexMarker for building or displaying a settlement */
+/** VertexMarker for settlements */
 function VertexMarker({ vertex, settlement }) {
   const { buildSettlement, isBuildingSettlement } = useGameState();
   const [hovered, setHovered] = useState(false);
@@ -115,27 +154,17 @@ function VertexMarker({ vertex, settlement }) {
     buildSettlement(vertex.vertexId, 'SomePlayer');
   };
 
-  useFrame(() => {
-    if (markerRef.current) {
-      // optional spin or animation
-    }
-  });
+  useFrame(() => {});
 
-  // If there's a settlement here, show it in the settlement's color
   if (settlement) {
     return (
-      <mesh
-        ref={markerRef}
-        position={vertex.position}
-      >
-        {/* For simplicity, draw a small box or sphere */}
+      <mesh ref={markerRef} position={vertex.position}>
         <boxGeometry args={[0.3, 0.3, 0.3]} />
         <meshStandardMaterial color={getPlayerColor(settlement.owner)} />
       </mesh>
     );
   }
 
-  // Otherwise, just draw a small invisible "click zone" or a small sphere
   return (
     <mesh
       ref={markerRef}
@@ -159,7 +188,6 @@ function EdgeCylinder({ endpoints, color, onPointerOver, onPointerOut, onClick }
   const [p1, p2] = endpoints;
   const cylinderRef = useRef();
 
-  // Compute midpoint
   const mx = (p1[0] + p2[0]) / 2;
   const my = (p1[1] + p2[1]) / 2;
   const mz = (p1[2] + p2[2]) / 2;
@@ -190,7 +218,7 @@ function EdgeCylinder({ endpoints, color, onPointerOver, onPointerOut, onClick }
   );
 }
 
-/** Colors for tiles, roads, and settlements */
+/** Helpers for tile colors, etc. */
 function getTileColor(tile, hovered) {
   const base = getResourceColor(tile.resource);
   if (hovered) {
