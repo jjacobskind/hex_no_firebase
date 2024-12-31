@@ -1,97 +1,68 @@
 #!/usr/bin/env bash
 
 #############################################
-# PHASE 14 UPDATE SCRIPT
-# Multi-Resource Management
+# PHASE 15 UPDATE SCRIPT
+# Hooks the client to a real backend via Socket.io
 #############################################
 
-# 1) Overwrite game_state_context.jsx with multi-resource logic
+# 1) Update socket_service.js to define new client->server events
+cat << 'EOF' > src/services/socket_service.js
+import { io } from 'socket.io-client';
+
+let socket = null;
+
+export function initSocket(url = 'http://localhost:4000') {
+  if (!socket) {
+    socket = io(url);
+
+    // Example event handlers
+    socket.on('connect', () => {
+      console.log('[Socket] Connected:', socket.id);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('[Socket] Disconnected:', reason);
+    });
+
+    // Listen for a "game-state-updated" event from server
+    socket.on('game-state-updated', (newState) => {
+      // We'll have the client sync local state with newState
+      console.log('[Socket] Received updated game state from server:', newState);
+      // We'll let GameStateContext handle merging
+      if (typeof window !== 'undefined' && window.handleServerGameState) {
+        window.handleServerGameState(newState);
+      }
+    });
+  }
+  return socket;
+}
+
+export function getSocket() {
+  return socket;
+}
+
+export function disconnectSocket() {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+}
+EOF
+
+# 2) Overwrite or update GameStateContext to rely on server calls
 cat << 'EOF' > src/context/game_state_context.jsx
 import React, { createContext, useEffect, useState } from 'react';
-import { useSocket } from '../hooks/use_socket';
+import { initSocket, getSocket } from '../services/socket_service';
 import { getGameState, setGameState } from '../services/game_service';
-import {
-  generateHexBoard,
-  generateEdges,
-  generateVertices
-} from '../utils/board_utils';
+import { generateHexBoard, generateEdges, generateVertices } from '../utils/board_utils';
 
 export const GameStateContext = createContext(null);
 
 /**
- * We'll define a resource set as an object with keys: wood, brick, wheat, sheep, ore.
- * For convenience, we might store them in uppercase or keep them lowercase.
+ * In a real environment, we store minimal local state, letting
+ * the server remain the authority. We'll still keep references,
+ * but major actions call the server.
  */
-function emptyResources() {
-  return { wood: 0, brick: 0, wheat: 0, sheep: 0, ore: 0 };
-}
-
-// Basic dev card array from prior phases
-const BASE_DECK = [
-  'Knight',
-  'Knight',
-  'RoadBuilding',
-  'YearOfPlenty',
-  'Monopoly',
-  'VictoryPoint',
-];
-
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-const INITIAL_DEV_DECK = shuffleArray([...BASE_DECK, ...BASE_DECK, ...BASE_DECK.slice(0, 3)]);
-
-/** 
- * Merge two resource objects, adding amounts together. 
- * e.g. addResources({wood:1,brick:0}, {wood:2,brick:2}) => {wood:3, brick:2}
- */
-function addResources(a, b) {
-  return {
-    wood: (a.wood || 0) + (b.wood || 0),
-    brick: (a.brick || 0) + (b.brick || 0),
-    wheat: (a.wheat || 0) + (b.wheat || 0),
-    sheep: (a.sheep || 0) + (b.sheep || 0),
-    ore: (a.ore || 0) + (b.ore || 0),
-  };
-}
-
-/** 
- * Subtract b from a, e.g. subResources(a,b) => a-b. 
- * We won't do safety checks here—real logic belongs on the server.
- */
-function subResources(a, b) {
-  return {
-    wood: (a.wood || 0) - (b.wood || 0),
-    brick: (a.brick || 0) - (b.brick || 0),
-    wheat: (a.wheat || 0) - (b.wheat || 0),
-    sheep: (a.sheep || 0) - (b.sheep || 0),
-    ore: (a.ore || 0) - (b.ore || 0),
-  };
-}
-
-/** 
- * Check if a has at least as many of each resource as b. 
- * e.g. canAfford(a,b) => boolean
- */
-function canAfford(a, b) {
-  return (
-    a.wood >= b.wood &&
-    a.brick >= b.brick &&
-    a.wheat >= b.wheat &&
-    a.sheep >= b.sheep &&
-    a.ore >= b.ore
-  );
-}
-
-/** Build costs for major items */
-const COST_ROAD = { wood: 1, brick: 1 };
-const COST_SETTLEMENT = { wood: 1, brick: 1, wheat: 1, sheep: 1 };
-// For demonstration, no city, or you can add { ore:3, wheat:2 } if you like
-
 export function GameStateProvider({ children }) {
   const [players, setPlayers] = useState([]);
   const [tiles, setTiles] = useState([]);
@@ -99,238 +70,112 @@ export function GameStateProvider({ children }) {
   const [vertices, setVertices] = useState([]);
   const [roads, setRoads] = useState([]);
   const [settlements, setSettlements] = useState([]);
-
-  // Now, for multi-resource, playerResources: { [playerName]: {wood,brick,wheat,sheep,ore} }
   const [playerResources, setPlayerResources] = useState({});
-
-  // Victory points remain the same
   const [playerVictoryPoints, setPlayerVictoryPoints] = useState({});
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [winner, setWinner] = useState(null);
 
-  // Titles from prior phases
+  // Additional states from prior phases
+  const [isBuildingRoad, setIsBuildingRoad] = useState(false);
+  const [isBuildingSettlement, setIsBuildingSettlement] = useState(false);
+  const [isMovingRobber, setIsMovingRobber] = useState(false);
+  const [robberTileId, setRobberTileId] = useState(null);
+  const [diceResult, setDiceResult] = useState(null);
+  const [devDeck, setDevDeck] = useState([]);
+  const [playerDevCards, setPlayerDevCards] = useState({});
+  const [pendingTrade, setPendingTrade] = useState(null);
   const [longestRoadOwner, setLongestRoadOwner] = useState(null);
   const [longestRoadLength, setLongestRoadLength] = useState(0);
   const [largestArmyOwner, setLargestArmyOwner] = useState(null);
   const [largestArmySize, setLargestArmySize] = useState(0);
   const [playerKnightsPlayed, setPlayerKnightsPlayed] = useState({});
 
-  const [selectedTile, setSelectedTile] = useState(null);
+  // We'll hold a reference to the socket
+  const [socket, setLocalSocket] = useState(null);
 
-  const [isBuildingRoad, setIsBuildingRoad] = useState(false);
-  const [isBuildingSettlement, setIsBuildingSettlement] = useState(false);
-
-  const [isMovingRobber, setIsMovingRobber] = useState(false);
-  const [robberTileId, setRobberTileId] = useState(null);
-  const [playersToStealFrom, setPlayersToStealFrom] = useState([]);
-
-  const [diceResult, setDiceResult] = useState(null);
-
-  const [devDeck, setDevDeck] = useState([...INITIAL_DEV_DECK]);
-  const [playerDevCards, setPlayerDevCards] = useState({});
-
-  const [pendingTrade, setPendingTrade] = useState(null);
-
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [winner, setWinner] = useState(null);
-
-  const socket = useSocket();
-
-  function currentUserName() {
-    return 'DefaultPlayer'; // Example placeholder
-  }
-
-  // On initial load
+  // On mount, initialize the socket & define a global handler for game-state merges
   useEffect(() => {
-    const existing = getGameState();
-    if (!existing.tiles) {
-      // brand new
-      const newTiles = generateHexBoard();
-      const newEdges = generateEdges(newTiles);
-      const newVertices = generateVertices(newTiles);
-      const defaultPlayers = ['Alice', 'Bob'];
+    const s = initSocket(); // default to http://localhost:4000
+    setLocalSocket(s);
 
-      const newRes = {};
-      defaultPlayers.forEach((p) => {
-        newRes[p] = emptyResources();
-      });
-
-      const initState = {
-        players: defaultPlayers,
-        tiles: newTiles,
-        edges: newEdges,
-        vertices: newVertices,
-        roads: [],
-        settlements: [],
-        robberTileId: null,
-        playerResources: newRes,
-        playerVictoryPoints: {},
-        devDeck,
-        playerDevCards: {},
-        pendingTrade: null,
-        currentPlayerIndex: 0,
-        winner: null,
-        longestRoadOwner: null,
-        longestRoadLength: 0,
-        largestArmyOwner: null,
-        largestArmySize: 0,
-        playerKnightsPlayed: {}
-      };
-
-      setGameState(initState);
-      setPlayers(defaultPlayers);
-      setTiles(newTiles);
-      setEdges(newEdges);
-      setVertices(newVertices);
-      setPlayerResources(newRes);
-    } else {
-      // hydrate from existing
-      setPlayers(existing.players || []);
-      setTiles(existing.tiles || []);
-      setEdges(existing.edges || []);
-      setVertices(existing.vertices || []);
-      setRoads(existing.roads || []);
-      setSettlements(existing.settlements || []);
-      setRobberTileId(existing.robberTileId || null);
-      setPlayerResources(existing.playerResources || {});
-      setPlayerVictoryPoints(existing.playerVictoryPoints || {});
-      setDevDeck(existing.devDeck || devDeck);
-      setPlayerDevCards(existing.playerDevCards || {});
-      setPendingTrade(existing.pendingTrade || null);
-      setCurrentPlayerIndex(existing.currentPlayerIndex || 0);
-      setWinner(existing.winner || null);
-      setLongestRoadOwner(existing.longestRoadOwner || null);
-      setLongestRoadLength(existing.longestRoadLength || 0);
-      setLargestArmyOwner(existing.largestArmyOwner || null);
-      setLargestArmySize(existing.largestArmySize || 0);
-      setPlayerKnightsPlayed(existing.playerKnightsPlayed || {});
+    // Provide a global function so socket_service can call back
+    if (typeof window !== 'undefined') {
+      window.handleServerGameState = handleServerGameState;
     }
+
+    // On unmount, remove the global
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete window.handleServerGameState;
+      }
+    };
   }, []);
 
-  useEffect(() => {
-    if (!socket) return;
-    socket.emit('join-game', { playerName: 'DefaultPlayer' });
-  }, [socket]);
+  // handleServerGameState merges the new server state into our local state
+  function handleServerGameState(newState) {
+    // For simplicity, we replace or merge all fields
+    // In a real game, you'd carefully merge to avoid flickers
+    setPlayers(newState.players || []);
+    setTiles(newState.tiles || []);
+    setEdges(newState.edges || []);
+    setVertices(newState.vertices || []);
+    setRoads(newState.roads || []);
+    setSettlements(newState.settlements || []);
+    setPlayerResources(newState.playerResources || {});
+    setPlayerVictoryPoints(newState.playerVictoryPoints || {});
+    setCurrentPlayerIndex(newState.currentPlayerIndex || 0);
+    setWinner(newState.winner || null);
 
-  // We skip continuous sync code for brevity
+    setIsBuildingRoad(false);
+    setIsBuildingSettlement(false);
+    setIsMovingRobber(false);
+    setRobberTileId(newState.robberTileId || null);
+    setDiceResult(newState.diceResult || null);
+    setDevDeck(newState.devDeck || []);
+    setPlayerDevCards(newState.playerDevCards || {});
+    setPendingTrade(newState.pendingTrade || null);
+    setLongestRoadOwner(newState.longestRoadOwner || null);
+    setLongestRoadLength(newState.longestRoadLength || 0);
+    setLargestArmyOwner(newState.largestArmyOwner || null);
+    setLargestArmySize(newState.largestArmySize || 0);
+    setPlayerKnightsPlayed(newState.playerKnightsPlayed || {});
+  }
 
-  // -------------------------------------------------
-  // Example: Build a Road with real resource cost
-  // -------------------------------------------------
+  // -----------------------------------------------------
+  // Example: Build Road -> Emit event to server
+  // -----------------------------------------------------
   function buildRoad(edgeId, owner) {
-    // check if there's already a road
-    if (roads.some((r) => r.edgeId === edgeId)) {
-      console.log('Road already exists on this edge!');
-      return;
-    }
-    // check resource cost
-    const currentRes = playerResources[owner] || emptyResources();
-    if (!canAfford(currentRes, COST_ROAD)) {
-      console.log(`${owner} cannot afford a road! Need wood=1,brick=1`);
-      return;
-    }
-    // subtract resources
-    const updatedOwnerRes = subResources(currentRes, COST_ROAD);
-    // add the road
-    const newRoads = [...roads, { edgeId, owner }];
-
-    // now update state
-    const newPlayerResMap = { ...playerResources, [owner]: updatedOwnerRes };
-    setRoads(newRoads);
-    setPlayerResources(newPlayerResMap);
-
-    // in real usage, recalcLongestRoad, etc.
-    // We'll keep it short for demonstration
-    setGameState({
-      roads: newRoads,
-      playerResources: newPlayerResMap
-    });
-    console.log(`${owner} built a Road (cost 1 wood + 1 brick).`);
+    if (!socket) return;
+    console.log(`Emitting "build-road" event to server: ${edgeId}, owner=${owner}`);
+    socket.emit('build-road', { edgeId, owner });
+    // The server will validate & broadcast "game-state-updated"
   }
 
-  // -------------------------------------------------
-  // Build a Settlement (cost 1 wood + 1 brick + 1 wheat + 1 sheep)
-  // -------------------------------------------------
+  // Similarly, build settlement
   function buildSettlement(vertexId, owner) {
-    // check if a settlement already there
-    if (settlements.some((s) => s.vertexId === vertexId)) {
-      console.log('That vertex is already occupied!');
-      return;
-    }
-    // resource cost
-    const currentRes = playerResources[owner] || emptyResources();
-    if (!canAfford(currentRes, COST_SETTLEMENT)) {
-      console.log(`${owner} cannot afford a Settlement! Need wood=1,brick=1,wheat=1,sheep=1`);
-      return;
-    }
-    const updatedOwnerRes = subResources(currentRes, COST_SETTLEMENT);
-    // add new settlement
-    const newSetts = [...settlements, { vertexId, owner }];
-
-    // update state
-    const newResMap = { ...playerResources, [owner]: updatedOwnerRes };
-    setSettlements(newSetts);
-    setPlayerResources(newResMap);
-
-    // awarding 1 victory point for demonstration
-    const newVP = { ...playerVictoryPoints };
-    newVP[owner] = (newVP[owner] || 0) + 1;
-
-    let newWinner = winner;
-    if (newVP[owner] >= 10) {
-      newWinner = owner;
-      console.log(`${owner} reached 10 VP => wins!`);
-    }
-
-    setPlayerVictoryPoints(newVP);
-    setGameState({
-      settlements: newSetts,
-      playerResources: newResMap,
-      playerVictoryPoints: newVP,
-      winner: newWinner
-    });
-    if (newWinner) {
-      setWinner(newWinner);
-    }
-    console.log(`${owner} built a Settlement at vertex=${vertexId}, costing 1 of each resource.`);
+    if (!socket) return;
+    console.log(`Emitting "build-settlement" event: ${vertexId}, owner=${owner}`);
+    socket.emit('build-settlement', { vertexId, owner });
   }
 
-  // -------------------------------------------------
-  // Distribute resources by tile type on dice roll
-  // -------------------------------------------------
-  function distributeResources(diceTotal) {
-    // e.g. find tiles with diceNumber == diceTotal and resource != 'desert'
-    const matchingTiles = tiles.filter((t) => t.diceNumber === diceTotal && t.resource !== 'desert');
-    // if robberTileId is on a tile with diceNumber == diceTotal, that tile is blocked => skip it
-
-    const newResMap = { ...playerResources };
-
-    matchingTiles.forEach((tile) => {
-      if (tile.id === robberTileId) {
-        console.log(`Tile #${tile.id} is blocked by robber!`);
-        return;
-      }
-      // find all settlements on tile’s corners
-      const tileVerts = vertices.filter((v) => v.tiles.includes(tile.id));
-      tileVerts.forEach((vert) => {
-        const foundSet = settlements.find((s) => s.vertexId === vert.vertexId);
-        if (foundSet) {
-          const owner = foundSet.owner;
-          // award +1 tile.resource
-          if (!newResMap[owner]) {
-            newResMap[owner] = emptyResources();
-          }
-          newResMap[owner][tile.resource] = (newResMap[owner][tile.resource] || 0) + 1;
-          console.log(`Player ${owner} gets +1 ${tile.resource} from tile #${tile.id}.`);
-        }
-      });
-    });
-
-    setPlayerResources(newResMap);
-    setGameState({ playerResources: newResMap });
+  // End turn
+  function endTurn() {
+    if (!socket) return;
+    console.log('Emitting "end-turn"');
+    socket.emit('end-turn');
   }
 
-  // We skip advanced logic for road continuity, dev cards, etc. from prior phases, to keep it short.
+  // Roll dice
+  function rollDice(playerName) {
+    if (!socket) return;
+    console.log(`${playerName} is rolling dice, emit to server...`);
+    socket.emit('roll-dice', { playerName });
+  }
+
+  // etc. for dev cards, robber, trading, etc.
 
   const contextValue = {
+    // Basic state
     players,
     tiles,
     edges,
@@ -339,13 +184,33 @@ export function GameStateProvider({ children }) {
     settlements,
     playerResources,
     playerVictoryPoints,
+    currentPlayerIndex,
+    winner,
 
+    // Titles
+    longestRoadOwner,
+    longestRoadLength,
+    largestArmyOwner,
+    largestArmySize,
+    playerKnightsPlayed,
+
+    // UI toggles
+    isBuildingRoad, setIsBuildingRoad,
+    isBuildingSettlement, setIsBuildingSettlement,
+    isMovingRobber, setIsMovingRobber,
+    robberTileId,
+    diceResult,
+    devDeck, playerDevCards,
+    pendingTrade,
+
+    // Methods that now rely on server calls
     buildRoad,
     buildSettlement,
-    distributeResources,
+    endTurn,
+    rollDice,
+    // devCard => socket.emit('play-dev-card', {...})
 
-    // ... plus everything from prior phases (largestArmy, longestRoad, dev cards, etc.)
-    // We omit them for brevity here—feel free to unify.
+    // In real usage, also: moveRobber, tradeProposals, etc.
   };
 
   return (
@@ -356,10 +221,9 @@ export function GameStateProvider({ children }) {
 }
 EOF
 
-# 2) Done - We don't strictly need to update the UI in game_page.jsx
-echo "Phase 14 files created/updated successfully!"
+echo "Phase 15 files created/updated successfully!"
 echo "Next steps:"
-echo "1) npm start -> /game."
-echo "2) Notice that building a road or settlement now checks for resource costs (wood, brick, etc.)."
-echo "3) Resource distribution from dice uses tile.resource to increment the correct resource type."
-echo "4) Full rules require a real server check, but this demonstrates multi-resource logic on the client!"
+echo "1) Start your backend server on http://localhost:4000 (or your own URL)."
+echo "2) Confirm it handles events like 'build-road', 'end-turn', 'roll-dice', etc. and responds with 'game-state-updated'."
+echo "3) Your client now defers critical logic to the server, merging the server’s updated state into local UI."
+echo "4) This completes the basic approach to hooking your React client to a real backend!"

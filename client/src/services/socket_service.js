@@ -2,15 +2,11 @@ import { io } from 'socket.io-client';
 
 let socket = null;
 
-/**
- * Initialize the socket connection.
- * @param {string} url The server URL, e.g. 'http://localhost:4000'
- */
 export function initSocket(url = 'http://localhost:4000') {
   if (!socket) {
     socket = io(url);
 
-    // Example event handlers (adapt to your server's actual events)
+    // Example event handlers
     socket.on('connect', () => {
       console.log('[Socket] Connected:', socket.id);
     });
@@ -19,23 +15,23 @@ export function initSocket(url = 'http://localhost:4000') {
       console.log('[Socket] Disconnected:', reason);
     });
 
-    // Add more listeners, e.g.:
-    // socket.on('player-joined', (data) => {...});
-    // socket.on('chat-message', (msg) => {...});
+    // Listen for a "game-state-updated" event from server
+    socket.on('game-state-updated', (newState) => {
+      // We'll have the client sync local state with newState
+      console.log('[Socket] Received updated game state from server:', newState);
+      // We'll let GameStateContext handle merging
+      if (typeof window !== 'undefined' && window.handleServerGameState) {
+        window.handleServerGameState(newState);
+      }
+    });
   }
   return socket;
 }
 
-/**
- * Get the existing socket connection (null if uninitialized).
- */
 export function getSocket() {
   return socket;
 }
 
-/**
- * Disconnect the socket (if needed).
- */
 export function disconnectSocket() {
   if (socket) {
     socket.disconnect();
