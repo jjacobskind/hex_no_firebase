@@ -5,7 +5,7 @@ module.exports = {
   entry: './src/index.jsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
+    filename: '[name].[contenthash].js',
     publicPath: '/'
   },
   resolve: {
@@ -39,5 +39,10 @@ module.exports = {
       directory: path.join(__dirname, 'public')
     },
     port: 3000
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all'
+    }
   }
 };
