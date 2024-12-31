@@ -3,22 +3,30 @@ import { useGameState } from '../../hooks/use_game_state';
 import { useAuth } from '../../hooks/use_auth';
 import './build_menu.css';
 
-/**
- * BuildMenu:
- * - A simple UI with a button to toggle "Build Road" mode.
- * - Future expansions: Build Settlement, Build City, etc.
- */
 export default function BuildMenu() {
-  const { isBuildingRoad, setIsBuildingRoad } = useGameState();
+  const {
+    isBuildingRoad, setIsBuildingRoad,
+    isBuildingSettlement, setIsBuildingSettlement
+  } = useGameState();
+
   const { user } = useAuth();
 
   const toggleBuildRoad = () => {
-    // Must be logged in to build
     if (!user) {
       alert('You must be logged in to build roads!');
       return;
     }
+    setIsBuildingSettlement(false); // turn off settlement mode if on
     setIsBuildingRoad(!isBuildingRoad);
+  };
+
+  const toggleBuildSettlement = () => {
+    if (!user) {
+      alert('You must be logged in to build settlements!');
+      return;
+    }
+    setIsBuildingRoad(false); // turn off road mode if on
+    setIsBuildingSettlement(!isBuildingSettlement);
   };
 
   return (
@@ -29,6 +37,13 @@ export default function BuildMenu() {
         onClick={toggleBuildRoad}
       >
         {isBuildingRoad ? 'Cancel Road' : 'Build Road'}
+      </button>
+      <button
+        className={isBuildingSettlement ? 'active' : ''}
+        onClick={toggleBuildSettlement}
+        style={{ marginTop: '10px' }}
+      >
+        {isBuildingSettlement ? 'Cancel Settlement' : 'Build Settlement'}
       </button>
     </div>
   );

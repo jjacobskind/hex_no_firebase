@@ -5,7 +5,7 @@ import { useGameState } from '../../hooks/use_game_state';
 import './board_scene.css';
 
 export default function BoardScene() {
-  const { tiles, edges } = useGameState();
+  const { tiles, edges, vertices, roads, settlements } = useGameState();
 
   return (
     <div className="board-scene-container">
@@ -20,25 +20,35 @@ export default function BoardScene() {
           <HexTile key={tile.id} tile={tile} />
         ))}
 
-        {/* Edges */}
+        {/* Edges (for roads) */}
         {edges.map((edgeObj) => (
-          <EdgeLine key={edgeObj.edgeId} edgeObj={edgeObj} />
+          <EdgeLine key={edgeObj.edgeId} edgeObj={edgeObj} roads={roads} />
         ))}
+
+        {/* Vertices (for settlements) */}
+        {vertices.map((vertex) => {
+          const settlement = settlements.find(s => s.vertexId === vertex.vertexId);
+          return (
+            <VertexMarker
+              key={vertex.vertexId}
+              vertex={vertex}
+              settlement={settlement}
+            />
+          );
+        })}
       </Canvas>
     </div>
   );
 }
 
-/** Hex Tile (unchanged from prior phase, except we read setSelectedTile from context) */
+/** Hex Tile */
 function HexTile({ tile }) {
   const meshRef = useRef();
   const { setSelectedTile } = useGameState();
 
   const [hovered, setHovered] = useState(false);
 
-  useFrame(() => {
-    // if (meshRef.current) meshRef.current.rotation.z += 0.0005;
-  });
+  useFrame(() => {});
 
   const handleClick = () => {
     setSelectedTile(tile);
@@ -58,12 +68,10 @@ function HexTile({ tile }) {
   );
 }
 
-/** Renders an edge line or a "road" if built. */
-function EdgeLine({ edgeObj }) {
-  const { roads, buildRoad, isBuildingRoad } = useGameState();
-  const { edgeId, midpoint, endpoints } = edgeObj;
-
-  // Check if this edge already has a road
+/** EdgeLine for roads */
+function EdgeLine({ edgeObj, roads }) {
+  const { buildRoad, isBuildingRoad } = useGameState();
+  const { edgeId, endpoints } = edgeObj;
   const road = roads.find(r => r.edgeId === edgeId);
 
   const [hovered, setHovered] = useState(false);
@@ -71,58 +79,100 @@ function EdgeLine({ edgeObj }) {
   const handleClick = (e) => {
     e.stopPropagation();
     if (!isBuildingRoad) return;
-    // Build road for current user
-    buildRoad(edgeId, 'SomePlayer'); // We'll refine "owner" later
+    if (road) {
+      console.log('Edge already has a road!');
+      return;
+    }
+    buildRoad(edgeId, 'SomePlayer'); // Expand to real user later
   };
 
-  // We'll create a simple line or cylinder from endpoints
-  // react-three-fiber typically uses <line> or you can do a cylinder trick
   const color = road ? getPlayerColor(road.owner) : (hovered ? 'yellow' : 'white');
 
   return (
-    <group>
-      {/* We draw a cylinder from p1->p2 to visualize the edge */}
-      <EdgeCylinder
-        endpoints={endpoints}
-        color={color}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
-        onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
-        onClick={handleClick}
-      />
-    </group>
+    <EdgeCylinder
+      endpoints={endpoints}
+      color={color}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+      onClick={handleClick}
+    />
   );
 }
 
-/** The actual 3D cylinder that represents an edge or road */
+/** VertexMarker for building or displaying a settlement */
+function VertexMarker({ vertex, settlement }) {
+  const { buildSettlement, isBuildingSettlement } = useGameState();
+  const [hovered, setHovered] = useState(false);
+  const markerRef = useRef();
+
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (!isBuildingSettlement) return;
+    if (settlement) {
+      console.log('Vertex already has a settlement!');
+      return;
+    }
+    buildSettlement(vertex.vertexId, 'SomePlayer');
+  };
+
+  useFrame(() => {
+    if (markerRef.current) {
+      // optional spin or animation
+    }
+  });
+
+  // If there's a settlement here, show it in the settlement's color
+  if (settlement) {
+    return (
+      <mesh
+        ref={markerRef}
+        position={vertex.position}
+      >
+        {/* For simplicity, draw a small box or sphere */}
+        <boxGeometry args={[0.3, 0.3, 0.3]} />
+        <meshStandardMaterial color={getPlayerColor(settlement.owner)} />
+      </mesh>
+    );
+  }
+
+  // Otherwise, just draw a small invisible "click zone" or a small sphere
+  return (
+    <mesh
+      ref={markerRef}
+      position={vertex.position}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+      onPointerOut={(e) => { e.stopPropagation(); setHovered(false); }}
+      onClick={handleClick}
+    >
+      <sphereGeometry args={[0.1, 8, 8]} />
+      <meshStandardMaterial
+        color={hovered ? 'yellow' : 'transparent'}
+        opacity={hovered ? 1 : 0.4}
+        transparent
+      />
+    </mesh>
+  );
+}
+
+/** A 3D cylinder representing an edge/road */
 function EdgeCylinder({ endpoints, color, onPointerOver, onPointerOut, onClick }) {
   const [p1, p2] = endpoints;
+  const cylinderRef = useRef();
 
-  // Calculate mid position
+  // Compute midpoint
   const mx = (p1[0] + p2[0]) / 2;
   const my = (p1[1] + p2[1]) / 2;
   const mz = (p1[2] + p2[2]) / 2;
 
-  // Calculate length
   const dx = p2[0] - p1[0];
   const dy = p2[1] - p1[1];
   const dz = p2[2] - p1[2];
   const length = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-  // Rotation: for 2D top-down, we can do a rotation around Z
-  // But let's do a full 3D rotation
-  // We'll compute the direction vector and build a quaternion. 
-  // For simplicity, let's skip advanced math: we can do a naive approach with "lookAt" or similar.
-
-  // We'll create a ref and use "lookAt" in a frame
-  const cylinderRef = useRef();
-
   useFrame(() => {
     if (cylinderRef.current) {
       cylinderRef.current.position.set(mx, my, mz);
-      // point the cylinder along the direction from p1->p2
-      // 'lookAt' the second endpoint
       cylinderRef.current.lookAt(p2[0], p2[1], p2[2]);
-      // rotate so that the cylinder's Y-axis is the length axis
       cylinderRef.current.rotation.x += Math.PI/2;
     }
   });
@@ -134,14 +184,13 @@ function EdgeCylinder({ endpoints, color, onPointerOver, onPointerOut, onClick }
       onPointerOut={onPointerOut}
       onClick={onClick}
     >
-      {/* radiusTop, radiusBottom, height, radialSegments */}
       <cylinderGeometry args={[0.05, 0.05, length, 8]} />
       <meshStandardMaterial color={color} />
     </mesh>
   );
 }
 
-/** Helpers for tile and road colors */
+/** Colors for tiles, roads, and settlements */
 function getTileColor(tile, hovered) {
   const base = getResourceColor(tile.resource);
   if (hovered) {
@@ -173,9 +222,7 @@ function hoverColor(baseColor) {
 }
 
 function getPlayerColor(owner) {
-  // For now, color roads orange by default or choose by owner name
   if (!owner) return 'orange';
   if (owner === 'SomePlayer') return 'red';
-  // Extend logic for multiple players
   return 'orange';
 }
