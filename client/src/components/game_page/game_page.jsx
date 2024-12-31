@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useGameState } from '../../hooks/use_game_state';
 import BoardScene from '../board_scene/board_scene';
+import ChatBox from '../chat_box/chat_box';
 import './game_page.css';
 
 export default function GamePage() {
@@ -14,9 +15,23 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>Now tiles are interactive. Hover to highlight. Click to select!</p>
+      <p>Now includes a real-time ChatBox!</p>
 
-      <BoardScene />
+      <div className="game-layout">
+        <div className="board-section">
+          <BoardScene />
+          {selectedTile && (
+            <div className="selected-tile-info">
+              <h3>Selected Tile</h3>
+              <p><strong>Resource:</strong> {selectedTile.resource}</p>
+              <p><strong>Dice #:</strong> {selectedTile.diceNumber || 'None'}</p>
+              <p><strong>Tile ID:</strong> {selectedTile.id}</p>
+            </div>
+          )}
+        </div>
+
+        <ChatBox />
+      </div>
 
       <div style={{ marginTop: 20 }}>
         <h3>Players in the game:</h3>
@@ -26,15 +41,6 @@ export default function GamePage() {
           ))}
         </ul>
       </div>
-
-      {selectedTile && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Selected Tile</h3>
-          <p><strong>Resource:</strong> {selectedTile.resource}</p>
-          <p><strong>Dice #:</strong> {selectedTile.diceNumber || 'None'}</p>
-          <p><strong>Tile ID:</strong> {selectedTile.id}</p>
-        </div>
-      )}
     </div>
   );
 }
