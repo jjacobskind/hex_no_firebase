@@ -5,6 +5,7 @@ import ChatBox from '../chat_box/chat_box';
 import BuildMenu from '../build_menu/build_menu';
 import RobberControl from '../robber_control/robber_control';
 import DiceRoller from '../dice_roller/dice_roller';
+import DevCardPanel from '../dev_card_panel/dev_card_panel';
 import './game_page.css';
 
 export default function GamePage() {
@@ -18,7 +19,7 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>Now includes a dice roller! Rolling a 7 forces robber movement.</p>
+      <p>Now includes simplified Development Cards!</p>
 
       <div className="game-layout">
         <div className="board-section">
@@ -38,6 +39,7 @@ export default function GamePage() {
           <ChatBox />
           <BuildMenu />
           <RobberControl />
+          <DevCardPanel />
         </div>
       </div>
 

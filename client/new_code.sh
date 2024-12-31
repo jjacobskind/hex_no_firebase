@@ -1,62 +1,118 @@
 #!/usr/bin/env bash
 
 #############################################
-# PHASE 9 UPDATE SCRIPT
-# Adds basic dice rolling & resource distribution
+# PHASE 10 UPDATE SCRIPT
+# Adds simplified Development Cards
 #############################################
 
-# 1) Create/Update dice_roller component
-mkdir -p src/components/dice_roller
-cat << 'EOF' > src/components/dice_roller/dice_roller.jsx
-import React, { useEffect } from 'react';
+# 1) Create dev_card_panel
+mkdir -p src/components/dev_card_panel
+cat << 'EOF' > src/components/dev_card_panel/dev_card_panel.jsx
+import React, { useState } from 'react';
 import { useGameState } from '../../hooks/use_game_state';
 import { useAuth } from '../../hooks/use_auth';
-import './dice_roller.css';
+import './dev_card_panel.css';
 
 /**
- * DiceRoller:
- * - Shows current dice result
- * - "Roll Dice" button triggers gameState.rollDice()
- * - If 7, robber mode is forced
+ * DevCardPanel:
+ * - Draw a dev card (costs 1 resource)
+ * - List dev cards in your hand
+ * - Play a dev card, triggering an effect
  */
-export default function DiceRoller() {
-  const { diceResult, rollDice } = useGameState();
+export default function DevCardPanel() {
+  const {
+    devDeck, playerDevCards, drawDevCard, playDevCard, playerResources
+  } = useGameState();
   const { user } = useAuth();
+  const [selectedCard, setSelectedCard] = useState('');
 
-  const handleRoll = () => {
-    if (!user) {
-      alert('You must be logged in to roll dice!');
+  const username = user ? user.username : null;
+  const currentPlayerCards = username && playerDevCards[username] ? playerDevCards[username] : [];
+
+  const handleDraw = () => {
+    if (!username) {
+      alert('You must be logged in to draw dev cards!');
       return;
     }
-    rollDice(user.username);
+    const myRes = playerResources[username] || 0;
+    if (myRes < 1) {
+      alert('Not enough resources to draw a dev card!');
+      return;
+    }
+    drawDevCard(username);
+  };
+
+  const handlePlay = () => {
+    if (!username || !selectedCard) return;
+    playDevCard(username, selectedCard);
+    setSelectedCard('');
   };
 
   return (
-    <div className="dice-roller">
-      <h3>Dice Roller</h3>
-      <p>Current Dice: <strong>{diceResult || '-'}</strong></p>
-      <button onClick={handleRoll}>Roll Dice</button>
+    <div className="dev-card-panel">
+      <h3>Dev Cards</h3>
+      <p>Deck Size: {devDeck.length}</p>
+      <button onClick={handleDraw}>Draw a Card (-1 resource)</button>
+
+      <div className="my-dev-cards">
+        <p>Your Hand:</p>
+        {currentPlayerCards.length === 0 && <p>No dev cards</p>}
+        {currentPlayerCards.map((card, i) => (
+          <label key={i} className="card-option">
+            <input
+              type="radio"
+              name="selectedCard"
+              value={card}
+              onChange={() => setSelectedCard(card)}
+              checked={selectedCard === card}
+            />
+            {card}
+          </label>
+        ))}
+      </div>
+
+      <button
+        className="play-button"
+        onClick={handlePlay}
+        disabled={!selectedCard}
+      >
+        Play Selected Card
+      </button>
     </div>
   );
 }
 EOF
 
-cat << 'EOF' > src/components/dice_roller/dice_roller.css
-.dice-roller {
-  background-color: #e0ffff;
+cat << 'EOF' > src/components/dev_card_panel/dev_card_panel.css
+.dev-card-panel {
+  background-color: #fafad2;
   border: 1px solid #ccc;
   padding: 10px;
-  width: 120px;
+  width: 140px;
   text-align: center;
   margin-bottom: 10px;
 }
+
+.my-dev-cards {
+  margin-top: 10px;
+  text-align: left;
+}
+
+.card-option {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.play-button {
+  margin-top: 10px;
+}
 EOF
 
-cat << 'EOF' > src/components/dice_roller/index.js
-export { default } from './dice_roller.jsx';
+cat << 'EOF' > src/components/dev_card_panel/index.js
+export { default } from './dev_card_panel.jsx';
 EOF
 
-# 2) Update GameStateContext with diceResult, rollDice(), resource distribution
+# 2) Update game_state_context.jsx for devDeck & devCards logic
 cat << 'EOF' > src/context/game_state_context.jsx
 import React, { createContext, useEffect, useState } from 'react';
 import { useSocket } from '../hooks/use_socket';
@@ -68,6 +124,28 @@ import {
 } from '../utils/board_utils';
 
 export const GameStateContext = createContext(null);
+
+// Minimal dev card deck. Repeat for bigger deck
+const BASE_DECK = [
+  'Knight',
+  'Knight',
+  'RoadBuilding',
+  'YearOfPlenty',
+  'Monopoly',
+  'VictoryPoint',
+];
+
+// create a random deck
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// We'll build a deck of 15 cards as an example
+const INITIAL_DEV_DECK = shuffleArray([...BASE_DECK, ...BASE_DECK, ...BASE_DECK.slice(0, 3)]);
 
 export function GameStateProvider({ children }) {
   const [players, setPlayers] = useState([]);
@@ -94,6 +172,11 @@ export function GameStateProvider({ children }) {
   // Dice rolling
   const [diceResult, setDiceResult] = useState(null);
 
+  // Dev cards
+  const [devDeck, setDevDeck] = useState([...INITIAL_DEV_DECK]);
+  // For each user: devCards => array of card names
+  const [playerDevCards, setPlayerDevCards] = useState({});
+
   const socket = useSocket();
 
   useEffect(() => {
@@ -110,7 +193,9 @@ export function GameStateProvider({ children }) {
         roads: [],
         settlements: [],
         robberTileId: null,
-        playerResources: {}
+        playerResources: {},
+        devDeck: devDeck,
+        playerDevCards: {}
       });
 
       setTiles(newTiles);
@@ -125,6 +210,8 @@ export function GameStateProvider({ children }) {
       setSettlements(existingGameState.settlements || []);
       setRobberTileId(existingGameState.robberTileId || null);
       setPlayerResources(existingGameState.playerResources || {});
+      setDevDeck(existingGameState.devDeck || devDeck);
+      setPlayerDevCards(existingGameState.playerDevCards || {});
     }
   }, []);
 
@@ -160,7 +247,16 @@ export function GameStateProvider({ children }) {
     if (gs.playerResources && gs.playerResources !== playerResources) {
       setPlayerResources(gs.playerResources);
     }
-  }, [players, tiles, edges, vertices, roads, settlements, robberTileId, playerResources]);
+    if (gs.devDeck && gs.devDeck !== devDeck) {
+      setDevDeck(gs.devDeck);
+    }
+    if (gs.playerDevCards && gs.playerDevCards !== playerDevCards) {
+      setPlayerDevCards(gs.playerDevCards);
+    }
+  }, [
+    players, tiles, edges, vertices, roads, settlements,
+    robberTileId, playerResources, devDeck, playerDevCards
+  ]);
 
   /** Place a road on an edge */
   function buildRoad(edgeId, owner) {
@@ -190,15 +286,11 @@ export function GameStateProvider({ children }) {
     console.log(`Settlement built by ${owner} on vertex ${vertexId}`);
   }
 
-  /**
-   * Move the robber to a tile
-   * Then find which players can be stolen from (who have settlements on this tile).
-   */
+  /** Move the robber to a tile, find who to steal from */
   function moveRobber(tileId) {
     setRobberTileId(tileId);
     setGameState({ robberTileId: tileId });
 
-    // find adjacent owners
     const tileVertices = vertices.filter((v) => v.tiles.includes(tileId));
     const owners = new Set();
     tileVertices.forEach((v) => {
@@ -210,50 +302,33 @@ export function GameStateProvider({ children }) {
     setPlayersToStealFrom(Array.from(owners));
   }
 
-  /** 
-   * For now, just log it. 
-   * In a real game, you'd transfer a random resource card from that player.
-   */
   function stealFromPlayer(victim) {
     console.log(`Steal from player: ${victim}`);
     setPlayersToStealFrom([]);
     setIsMovingRobber(false);
   }
 
-  /**
-   * Roll dice: 2d6
-   */
+  /** Dice rolling (Phase 9) */
+  const [diceResult, setDiceResultState] = useState(null);
   function rollDice(rollerName) {
     const die1 = Math.floor(Math.random() * 6) + 1;
     const die2 = Math.floor(Math.random() * 6) + 1;
     const total = die1 + die2;
 
-    setDiceResult(total);
+    setDiceResultState(total);
 
     console.log(`${rollerName} rolled a ${die1} + ${die2} = ${total}`);
 
     if (total === 7) {
       console.log('You rolled a 7! Move the robber!');
-      // force robber move
       setIsMovingRobber(true);
     } else {
-      // distribute resources
       distributeResources(total);
     }
   }
 
-  /**
-   * Very simplified resource distribution:
-   * - For each tile with diceNumber == total
-   * - find settlements on that tile's corners
-   * - +1 resource to that settlement's owner
-   */
   function distributeResources(total) {
     const matchingTiles = tiles.filter((t) => t.diceNumber === total && t.id !== robberTileId);
-    // if robberTileId is on a tile with diceNumber == total, that tile is blocked
-    // so skip it
-
-    // For each tile, find vertices, check if there's a settlement
     const newResources = { ...playerResources };
 
     matchingTiles.forEach((tile) => {
@@ -261,7 +336,6 @@ export function GameStateProvider({ children }) {
       tileVerts.forEach((vert) => {
         const foundSet = settlements.find((s) => s.vertexId === vert.vertexId);
         if (foundSet) {
-          // give +1 resource
           const owner = foundSet.owner;
           if (!newResources[owner]) {
             newResources[owner] = 0;
@@ -276,34 +350,156 @@ export function GameStateProvider({ children }) {
     setGameState({ playerResources: newResources });
   }
 
+  // -------------------------------------------------------
+  // Dev Card Functions
+  // -------------------------------------------------------
+  function drawDevCard(username) {
+    if (devDeck.length === 0) {
+      console.log('Dev deck is empty!');
+      return;
+    }
+    // pay 1 resource
+    const newResources = { ...playerResources };
+    newResources[username] = (newResources[username] || 0) - 1;
+    // draw top card
+    const newDeck = [...devDeck];
+    const card = newDeck.pop();
+
+    // add to player's dev hand
+    const newDevCards = { ...playerDevCards };
+    if (!newDevCards[username]) {
+      newDevCards[username] = [];
+    }
+    newDevCards[username] = [...newDevCards[username], card];
+
+    // update state
+    setPlayerResources(newResources);
+    setDevDeck(newDeck);
+    setPlayerDevCards(newDevCards);
+
+    setGameState({
+      playerResources: newResources,
+      devDeck: newDeck,
+      playerDevCards: newDevCards
+    });
+
+    console.log(`${username} drew a dev card: ${card}`);
+  }
+
+  function playDevCard(username, cardName) {
+    // remove card from player's hand
+    const playerHand = (playerDevCards[username] || []).slice();
+    const cardIndex = playerHand.indexOf(cardName);
+    if (cardIndex === -1) {
+      console.log('Card not found in hand!');
+      return;
+    }
+    playerHand.splice(cardIndex, 1);
+
+    // apply effect
+    switch (cardName) {
+      case 'Knight':
+        console.log(`${username} plays Knight -> must move robber`);
+        setIsMovingRobber(true);
+        break;
+      case 'RoadBuilding':
+        console.log(`${username} plays Road Building -> 2 free roads`);
+        // We'll skip detailed adjacency checks and just let them build roads anywhere
+        // For demonstration, we won't even automatically place them, 
+        // but you could set a "road building" mode with a counter of 2 roads left.
+        break;
+      case 'YearOfPlenty':
+        console.log(`${username} plays Year of Plenty -> +2 resources`);
+        giveResources(username, 2);
+        break;
+      case 'Monopoly':
+        console.log(`${username} plays Monopoly -> steal 2 resources from each other player`);
+        doMonopoly(username, 2);
+        break;
+      case 'VictoryPoint':
+        console.log(`${username} plays a Victory Point -> +1 resource (placeholder)`);
+        giveResources(username, 1);
+        break;
+      default:
+        console.log(`${username} plays an unknown card: ${cardName}`);
+        break;
+    }
+
+    // finalize new dev card state
+    const newDevCards = { ...playerDevCards };
+    newDevCards[username] = playerHand;
+    setPlayerDevCards(newDevCards);
+    setGameState({ playerDevCards: newDevCards });
+  }
+
+  function giveResources(username, amount) {
+    const newResources = { ...playerResources };
+    newResources[username] = (newResources[username] || 0) + amount;
+    setPlayerResources(newResources);
+    setGameState({ playerResources: newResources });
+  }
+
+  function doMonopoly(username, amount) {
+    const newResources = { ...playerResources };
+    // each other player loses "amount", this player gains sum of that
+    let stolen = 0;
+    players.forEach((p) => {
+      if (p === username) return;
+      const pRes = newResources[p] || 0;
+      if (pRes > 0) {
+        const take = Math.min(pRes, amount);
+        newResources[p] = pRes - take;
+        stolen += take;
+      }
+    });
+    // add stolen to username
+    newResources[username] = (newResources[username] || 0) + stolen;
+    setPlayerResources(newResources);
+    setGameState({ playerResources: newResources });
+    console.log(`${username} stole a total of ${stolen} resources via Monopoly!`);
+  }
+
   const contextValue = {
+    // Basic game data
     players,
     tiles,
     edges,
     vertices,
     roads,
     settlements,
-    robberTileId,
-    diceResult,
-    playerResources,
 
+    // Resources & dev cards
+    playerResources,
+    devDeck,
+    playerDevCards,
+
+    // UI states
     selectedTile,
     setSelectedTile: (tile) => setSelectedTile(tile),
-
     isBuildingRoad,
     setIsBuildingRoad,
     isBuildingSettlement,
     setIsBuildingSettlement,
 
+    // Robber
     isMovingRobber,
     setIsMovingRobber,
+    robberTileId,
     playersToStealFrom,
     stealFromPlayer,
+    moveRobber,
 
+    // Dice
+    diceResult,
+    rollDice,
+
+    // Build actions
     buildRoad,
     buildSettlement,
-    moveRobber,
-    rollDice
+
+    // Dev card actions
+    drawDevCard,
+    playDevCard
   };
 
   return (
@@ -314,7 +510,7 @@ export function GameStateProvider({ children }) {
 }
 EOF
 
-# 3) Update game_page.jsx to include DiceRoller in the sidebar
+# 3) Update game_page.jsx to include DevCardPanel in the sidebar
 cat << 'EOF' > src/components/game_page/game_page.jsx
 import React, { useEffect } from 'react';
 import { useGameState } from '../../hooks/use_game_state';
@@ -323,6 +519,7 @@ import ChatBox from '../chat_box/chat_box';
 import BuildMenu from '../build_menu/build_menu';
 import RobberControl from '../robber_control/robber_control';
 import DiceRoller from '../dice_roller/dice_roller';
+import DevCardPanel from '../dev_card_panel/dev_card_panel';
 import './game_page.css';
 
 export default function GamePage() {
@@ -336,7 +533,7 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>Now includes a dice roller! Rolling a 7 forces robber movement.</p>
+      <p>Now includes simplified Development Cards!</p>
 
       <div className="game-layout">
         <div className="board-section">
@@ -356,6 +553,7 @@ export default function GamePage() {
           <ChatBox />
           <BuildMenu />
           <RobberControl />
+          <DevCardPanel />
         </div>
       </div>
 
@@ -377,9 +575,10 @@ export default function GamePage() {
 }
 EOF
 
-echo "Phase 9 files created/updated successfully!"
+echo "Phase 10 files created/updated successfully!"
 echo "Next steps:"
 echo "1) Run 'npm start' -> /game."
-echo "2) Use the DiceRoller: Click 'Roll Dice'. If not 7, you'll see console logs awarding +1 resource to settlement owners. If 7, robber mode is forced."
-echo "3) Resource distribution is simplified. For real usage, track resource TYPES, city yields, discard logic, etc."
-echo "4) Congrats, you now have basic dice-based resource production!"
+echo "2) In the Dev Cards panel, click 'Draw a Card' (costs 1 resource)."
+echo "3) See your dev card in 'Your Hand'. Select it, then 'Play Selected Card' to trigger an effect."
+echo "4) Knight => Move Robber, Road Building => 2 free roads, Year of Plenty => +2 resources, Monopoly => steals 2 from each other player, Victory Point => +1 resource (placeholder)."
+echo "5) This is still simplified. In a real game, you'd track resource types, hidden VPs, usage limits, etc."
