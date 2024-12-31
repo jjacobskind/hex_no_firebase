@@ -6,6 +6,7 @@ import BuildMenu from '../build_menu/build_menu';
 import RobberControl from '../robber_control/robber_control';
 import DiceRoller from '../dice_roller/dice_roller';
 import DevCardPanel from '../dev_card_panel/dev_card_panel';
+import TradePanel from '../trade_panel/trade_panel';
 import './game_page.css';
 
 export default function GamePage() {
@@ -19,7 +20,7 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>Now includes simplified Development Cards!</p>
+      <p>Now includes basic Player-to-Player Trading!</p>
 
       <div className="game-layout">
         <div className="board-section">
@@ -40,6 +41,7 @@ export default function GamePage() {
           <BuildMenu />
           <RobberControl />
           <DevCardPanel />
+          <TradePanel />
         </div>
       </div>
 
