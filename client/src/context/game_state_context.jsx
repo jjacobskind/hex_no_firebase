@@ -1,18 +1,22 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { useSocket } from '../hooks/use_socket';
 import { getGameState, setGameState } from '../services/game_service';
-import { generateHexBoard } from '../utils/board_utils';
+import { generateHexBoard, generateEdges } from '../utils/board_utils';
 
 export const GameStateContext = createContext(null);
 
 /**
- * Provides a global game state + socket subscriptions.
- * Now includes selectedTile for UI interactions.
+ * Provides global game state + socket + building logic
  */
 export function GameStateProvider({ children }) {
   const [players, setPlayers] = useState([]);
   const [tiles, setTiles] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [roads, setRoads] = useState([]); // each road => { edgeId, owner }
   const [selectedTile, setSelectedTile] = useState(null);
+
+  // Build mode flags
+  const [isBuildingRoad, setIsBuildingRoad] = useState(false);
 
   const socket = useSocket(); // Connect to server
 
@@ -20,12 +24,22 @@ export function GameStateProvider({ children }) {
   useEffect(() => {
     const existingGameState = getGameState();
 
+    // If no tiles in the game state, generate them
     if (!existingGameState.tiles) {
       const newTiles = generateHexBoard();
-      setGameState({ tiles: newTiles });
+      const newEdges = generateEdges(newTiles);
+
+      setGameState({ 
+        tiles: newTiles,
+        edges: newEdges,
+        roads: []
+      });
       setTiles(newTiles);
+      setEdges(newEdges);
     } else {
       setTiles(existingGameState.tiles);
+      setEdges(existingGameState.edges || []);
+      setRoads(existingGameState.roads || []);
     }
   }, []);
 
@@ -57,12 +71,36 @@ export function GameStateProvider({ children }) {
     if (gs.tiles && gs.tiles !== tiles) {
       setTiles(gs.tiles);
     }
-  }, [players, tiles]);
+    if (gs.edges && gs.edges !== edges) {
+      setEdges(gs.edges);
+    }
+    if (gs.roads && gs.roads !== roads) {
+      setRoads(gs.roads);
+    }
+  }, [players, tiles, edges, roads]);
 
-  // Update the service if we change selectedTile
-  // (Optionally: store it in game_service if you want it persistent)
   function handleSelectTile(tile) {
     setSelectedTile(tile);
+  }
+
+  /**
+   * Attempt to build a road on an edge
+   */
+  function buildRoad(edgeId, owner) {
+    // Check if there's already a road on this edge
+    const existing = roads.find(r => r.edgeId === edgeId);
+    if (existing) {
+      console.log('Edge already has a road!');
+      return;
+    }
+
+    // For real game: resource checks, adjacency checks, etc.
+    const newRoad = { edgeId, owner };
+    const updatedRoads = [...roads, newRoad];
+    setRoads(updatedRoads);
+    setGameState({ roads: updatedRoads });
+
+    console.log(`Road built by ${owner} on edge ${edgeId}`);
   }
 
   const contextValue = {
@@ -70,8 +108,17 @@ export function GameStateProvider({ children }) {
     setPlayers,
     tiles,
     setTiles,
+    edges,
+    roads,
     selectedTile,
     setSelectedTile: handleSelectTile,
+
+    // Build mode
+    isBuildingRoad,
+    setIsBuildingRoad,
+
+    // Build actions
+    buildRoad
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useGameState } from '../../hooks/use_game_state';
 import BoardScene from '../board_scene/board_scene';
 import ChatBox from '../chat_box/chat_box';
+import BuildMenu from '../build_menu/build_menu';
 import './game_page.css';
 
 export default function GamePage() {
@@ -15,7 +16,7 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>Now includes a real-time ChatBox!</p>
+      <p>Now you can build basic roads. Click "Build Road," then click an edge.</p>
 
       <div className="game-layout">
         <div className="board-section">
@@ -30,7 +31,10 @@ export default function GamePage() {
           )}
         </div>
 
-        <ChatBox />
+        <div className="sidebar">
+          <ChatBox />
+          <BuildMenu />
+        </div>
       </div>
 
       <div style={{ marginTop: 20 }}>
