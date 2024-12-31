@@ -4,7 +4,7 @@ import BoardScene from '../board_scene/board_scene';
 import './game_page.css';
 
 export default function GamePage() {
-  const { players } = useGameState();
+  const { players, selectedTile } = useGameState();
 
   // Log whenever players change
   useEffect(() => {
@@ -14,9 +14,8 @@ export default function GamePage() {
   return (
     <div className="game-page">
       <h2>Hex Island</h2>
-      <p>This 3D board is now rendered via react-three-fiber:</p>
+      <p>Now tiles are interactive. Hover to highlight. Click to select!</p>
 
-      {/* Our new 3D board */}
       <BoardScene />
 
       <div style={{ marginTop: 20 }}>
@@ -27,6 +26,15 @@ export default function GamePage() {
           ))}
         </ul>
       </div>
+
+      {selectedTile && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Selected Tile</h3>
+          <p><strong>Resource:</strong> {selectedTile.resource}</p>
+          <p><strong>Dice #:</strong> {selectedTile.diceNumber || 'None'}</p>
+          <p><strong>Tile ID:</strong> {selectedTile.id}</p>
+        </div>
+      )}
     </div>
   );
 }

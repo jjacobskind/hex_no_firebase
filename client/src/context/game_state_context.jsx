@@ -7,18 +7,19 @@ export const GameStateContext = createContext(null);
 
 /**
  * Provides a global game state + socket subscriptions.
- * In Phase 3, we also generate hex tiles upon mount and store in context.
+ * Now includes selectedTile for UI interactions.
  */
 export function GameStateProvider({ children }) {
   const [players, setPlayers] = useState([]);
   const [tiles, setTiles] = useState([]);
+  const [selectedTile, setSelectedTile] = useState(null);
+
   const socket = useSocket(); // Connect to server
 
   // On mount: generate board if we haven't yet
   useEffect(() => {
     const existingGameState = getGameState();
 
-    // If no tiles in the game state, generate them
     if (!existingGameState.tiles) {
       const newTiles = generateHexBoard();
       setGameState({ tiles: newTiles });
@@ -47,8 +48,7 @@ export function GameStateProvider({ children }) {
     };
   }, [socket]);
 
-  // Update local states if game_service changes
-  // (In a bigger app, we might unify this in Redux or a single source of truth)
+  // Periodically sync with game_service
   useEffect(() => {
     const gs = getGameState();
     if (gs.players && gs.players !== players) {
@@ -59,11 +59,19 @@ export function GameStateProvider({ children }) {
     }
   }, [players, tiles]);
 
+  // Update the service if we change selectedTile
+  // (Optionally: store it in game_service if you want it persistent)
+  function handleSelectTile(tile) {
+    setSelectedTile(tile);
+  }
+
   const contextValue = {
     players,
     setPlayers,
     tiles,
     setTiles,
+    selectedTile,
+    setSelectedTile: handleSelectTile,
   };
 
   return (
