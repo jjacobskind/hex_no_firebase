@@ -1,131 +1,89 @@
 #!/usr/bin/env bash
 
 #############################################
-# PHASE 16 UPDATE SCRIPT
-# Final prep for production deployment
+# REFRACTOR OUT @react-three/drei
+# 
+# 1) npm uninstall @react-three/drei
+# 2) Remove import lines referencing drei
+# 3) Create orbit_controls.jsx (raw three-stdlib)
+# 4) Create useGltfLoader.js if desired
 #############################################
 
-# 1) Update package.json with separate "build" script & clarifications
-cat << 'EOF' > package.json
-{
-  "name": "hex_island_client",
-  "version": "1.0.0",
-  "description": "React rewrite of the Hex Island (Catan-like) game",
-  "scripts": {
-    "start": "webpack serve --mode development --open",
-    "build": "webpack --mode production"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.14.2",
-    "socket.io-client": "^4.6.1",
-    "@react-three/fiber": "^8.9.1",
-    "@react-three/drei": "^9.57.5",
-    "three": "^0.153.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.22.9",
-    "@babel/preset-env": "^7.22.9",
-    "@babel/preset-react": "^7.22.5",
-    "babel-loader": "^9.1.2",
-    "css-loader": "^6.8.1",
-    "html-webpack-plugin": "^5.5.3",
-    "style-loader": "^3.3.3",
-    "webpack": "^5.88.2",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.0"
-  }
+echo "1) Uninstalling @react-three/drei ..."
+npm uninstall @react-three/drei
+
+echo
+echo "2) Removing import lines referencing '@react-three/drei' from .jsx files..."
+# This is a naive approach, backing up with .bak just in case
+find src -type f -name "*.jsx" -exec sed -i.bak '/@react-three\/drei/d' {} \;
+
+echo
+echo "3) Creating orbit_controls.jsx (replaces <OrbitControls> from drei)..."
+mkdir -p src/components/orbit_controls
+cat << 'EOF' > src/components/orbit_controls/orbit_controls.jsx
+import React, { useRef, useEffect } from 'react';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { useThree, useFrame } from '@react-three/fiber';
+
+/**
+ * Minimal replacement for <OrbitControls> from drei:
+ * - Installs OrbitControls from 'three-stdlib'
+ * - Attaches them to your scene/camera
+ */
+export default function OrbitControls(props) {
+  const { camera, gl } = useThree();
+  const controlsRef = useRef();
+
+  useEffect(() => {
+    controlsRef.current = new OrbitControlsImpl(camera, gl.domElement);
+
+    // Optional settings:
+    controlsRef.current.enableDamping = true;
+    controlsRef.current.dampingFactor = 0.1;
+    controlsRef.current.screenSpacePanning = false;
+    controlsRef.current.minDistance = 1;
+    controlsRef.current.maxDistance = 200;
+
+    return () => {
+      controlsRef.current.dispose();
+    };
+  }, [camera, gl]);
+
+  useFrame(() => {
+    if (controlsRef.current && controlsRef.current.update) {
+      controlsRef.current.update();
+    }
+  });
+
+  return null; // No JSX to render, purely hooking into the R3F scene
 }
 EOF
 
-# 2) Update webpack.config.js for production build clarity
-cat << 'EOF' > webpack.config.js
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+echo
+echo "4) (Optional) Creating hooks/useGltfLoader.js if you want to load GLTF without drei..."
+mkdir -p src/hooks
+cat << 'EOF' > src/hooks/use_gltf_loader.js
+import { useState, useEffect } from 'react';
+import { GLTFLoader } from 'three-stdlib';
 
-module.exports = {
-  entry: './src/index.jsx',
-  output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: '[name].[contenthash].js',
-    publicPath: '/'
-  },
-  resolve: {
-    extensions: ['.js', '.jsx']
-  },
-  module: {
-    rules: [
-      {
-        test: /\.(js|jsx)$/,
-        exclude: /node_modules/,
-        use: 'babel-loader'
-      },
-      {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader']
-      },
-      {
-        test: /\.(png|jpg|gif|svg|glb|gltf)$/,
-        use: ['file-loader']
-      }
-    ]
-  },
-  plugins: [
-    new HtmlWebpackPlugin({
-      template: './public/index.html'
-    })
-  ],
-  devServer: {
-    historyApiFallback: true,
-    static: {
-      directory: path.join(__dirname, 'public')
-    },
-    port: 3000
-  },
-  optimization: {
-    splitChunks: {
-      chunks: 'all'
-    }
-  }
-};
+/**
+ * Basic GLTF loader hook, replaces drei's useGLTF.
+ */
+export function useGltfLoader(url) {
+  const [gltf, setGltf] = useState(null);
+
+  useEffect(() => {
+    const loader = new GLTFLoader();
+    loader.load(url, (data) => setGltf(data));
+  }, [url]);
+
+  return gltf;
+}
 EOF
 
-# 3) Create a basic Dockerfile (if you want container deployment)
-cat << 'EOF' > Dockerfile
-# Use a Node base image
-FROM node:18-alpine AS build
-
-WORKDIR /app
-
-# Copy package.json, package-lock.json first (for caching)
-COPY package.json package-lock.json /app/
-RUN npm install
-
-# Copy the rest of the client code
-COPY . /app
-
-# Build production bundle
-RUN npm run build
-
-# Stage 2: Use a minimal server (like nginx) to serve dist
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-EOF
-
-# 4) Provide a short .dockerignore if desired
-cat << 'EOF' > .dockerignore
-node_modules
-dist
-.git
-EOF
-
-echo "Phase 16 files created/updated successfully!"
+echo
+echo "Done! You have now removed @react-three/drei, replaced OrbitControls, and created a sample GLTF loader."
 echo "Next steps:"
-echo "1) npm install (if needed) to ensure correct deps."
-echo "2) npm run build -> produces a production bundle in /dist."
-echo "3) Deploy that /dist folder as static assets (Netlify, Vercel, S3, or behind your Node server)."
-echo "4) Or build Docker image: 'docker build -t hex-island-client .' then run the container."
-echo "Congratulations on your final production-ready client!"
+echo " - If your code used other drei components (useTexture, <Text>, <Environment>, etc.), refactor them similarly."
+echo " - Check *.bak backups if the sed removal impacted any lines incorrectly."
+echo " - Test your app. For OrbitControls usage, import the new orbit_controls.jsx."

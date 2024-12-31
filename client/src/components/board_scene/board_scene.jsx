@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import OrbitControls from '../orbit_controls/orbit_controls.jsx';
 import { useGameState } from '../../hooks/use_game_state';
 import './board_scene.css';
 
